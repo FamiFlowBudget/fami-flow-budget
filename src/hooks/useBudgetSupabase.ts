@@ -478,6 +478,71 @@ export const useBudgetSupabase = () => {
     }).filter(cd => cd.hasData);
   }, [categories, budgets, members, getCurrentMonthExpenses]);
 
+  // Calcular datos para gráficos anuales
+  const getYearTrendData = useCallback(() => {
+    const currentYear = new Date().getFullYear();
+    
+    return Array.from({ length: 12 }, (_, monthIndex) => {
+      const month = monthIndex + 1;
+      const monthName = new Date(0, monthIndex).toLocaleDateString('es-CL', { month: 'short' });
+      
+      // Gastos del mes
+      const monthExpenses = expenses.filter(expense => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate.getFullYear() === currentYear && 
+               expenseDate.getMonth() + 1 === month;
+      });
+      const spent = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+      
+      // Presupuesto del mes
+      const monthBudgets = budgets.filter(b => 
+        b.year === currentYear && b.month === month
+      );
+      const budget = monthBudgets.reduce((sum, b) => sum + b.amount, 0);
+      
+      return {
+        month: monthName,
+        monthNumber: month,
+        budget,
+        spent,
+        budgetCumulative: budget * month, // Simplificado
+        spentCumulative: spent * month, // Simplificado
+      };
+    });
+  }, [expenses, budgets]);
+
+  // Calcular datos para burn rate diario
+  const getDailyBurnData = useCallback(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+    
+    const monthExpenses = getCurrentMonthExpenses();
+    const monthBudgets = budgets.filter(b => 
+      b.year === currentYear && b.month === currentMonth
+    );
+    const monthBudget = monthBudgets.reduce((sum, b) => sum + b.amount, 0);
+    const dailyTarget = monthBudget / daysInMonth;
+    
+    return Array.from({ length: daysInMonth }, (_, dayIndex) => {
+      const day = dayIndex + 1;
+      const dayExpenses = monthExpenses.filter(expense => {
+        const expenseDay = new Date(expense.date).getDate();
+        return expenseDay <= day;
+      });
+      const actualSpent = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const targetSpent = dailyTarget * day;
+      
+      return {
+        day,
+        date: `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`,
+        actualSpent,
+        targetSpent
+      };
+    });
+  }, [getCurrentMonthExpenses, budgets]);
+
   return {
     // Data
     expenses,
@@ -500,5 +565,7 @@ export const useBudgetSupabase = () => {
     getCategoryProgress,
     getDashboardKPIs,
     getFamilyDataByCategory,
+    getYearTrendData,
+    getDailyBurnData,
   };
 };
