@@ -23,6 +23,26 @@ export const useBudgetSupabase = () => {
   const [currency] = useState<Currency>('CLP');
   const [loading, setLoading] = useState(true);
 
+  // Función para actualizar perfil del miembro
+  const updateMemberProfile = async (updates: { name?: string; photoUrl?: string }) => {
+    if (!currentMember) throw new Error('No current member');
+    
+    const { error } = await supabase
+      .from('family_members')
+      .update(updates)
+      .eq('id', currentMember.id);
+
+    if (error) throw error;
+
+    // Actualizar estado local
+    setCurrentMember(prev => prev ? { ...prev, ...updates } : null);
+    setMembers(prev => prev.map(member => 
+      member.id === currentMember.id 
+        ? { ...member, ...updates }
+        : member
+    ));
+  };
+
   // Cargar datos iniciales
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -473,6 +493,7 @@ export const useBudgetSupabase = () => {
     addCategory,
     upsertBudget,
     loadData,
+    updateMemberProfile,
     
     // Computed
     getCurrentMonthExpenses,
