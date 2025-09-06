@@ -68,6 +68,24 @@ export const navItems: NavItem[] = [
 ];
 
 export const getVisibleNavItems = (userRole: 'admin' | 'adult' | 'kid' | null) => {
-  if (!userRole) return [];
-  return navItems.filter(item => item.rolesAllowed.includes(userRole));
+  console.log('getVisibleNavItems called with:', userRole, typeof userRole);
+  console.log('navItems array:', navItems);
+  
+  // Check for any navItems with undefined rolesAllowed
+  const itemsWithUndefinedRoles = navItems.filter(item => !item.rolesAllowed);
+  if (itemsWithUndefinedRoles.length > 0) {
+    console.error('Found navItems with undefined rolesAllowed:', itemsWithUndefinedRoles);
+  }
+  
+  if (!userRole) {
+    console.log('No userRole provided, returning empty array');
+    return [];
+  }
+  console.log('Filtering navItems with role:', userRole);
+  const filtered = navItems.filter(item => {
+    console.log('Checking item:', item.label, 'rolesAllowed:', item.rolesAllowed, 'includes userRole?', item.rolesAllowed && item.rolesAllowed.includes(userRole));
+    return item.rolesAllowed && item.rolesAllowed.includes(userRole);
+  });
+  console.log('Filtered items:', filtered);
+  return filtered;
 };

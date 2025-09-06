@@ -24,7 +24,10 @@ export const AppHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
+  console.log('AppHeader - Current member role:', currentMember?.role);
+  console.log('AppHeader - Current member object:', currentMember);
   const navItems = getVisibleNavItems(currentMember?.role || null);
+  console.log('AppHeader - Nav items returned:', navItems);
   const kpis = getDashboardKPIs();
   
   // Online/offline detection
