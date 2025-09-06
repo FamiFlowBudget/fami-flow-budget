@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ export const AppHeader = () => {
   const { currentMember, getDashboardKPIs } = useBudgetSupabase();
   const { getPeriodLabel } = usePeriod();
   const location = useLocation();
+  const navigate = useNavigate();
   
   const navItems = getVisibleNavItems(currentMember?.role || null);
   const kpis = getDashboardKPIs();
@@ -172,7 +173,12 @@ export const AppHeader = () => {
             <NewExpenseButton />
 
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 relative">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-9 w-9 p-0 relative"
+              onClick={() => navigate('/alerts')}
+            >
               <Bell className="w-4 h-4" />
               <Badge className="absolute -top-1 -right-1 h-5 w-5 text-xs p-0 flex items-center justify-center">
                 3

@@ -15,12 +15,16 @@ import Import from "./pages/Import";
 import Reports from "./pages/Reports";
 import Accounts from "./pages/Accounts";
 import NotFound from "./pages/NotFound";
+import Alerts from "./pages/Alerts";
+import Dashboard from "./pages/Dashboard";
+import { FiltersProvider } from "@/providers/FiltersProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <FiltersProvider>
     <PeriodProvider>
       <AuthProvider>
       <TooltipProvider>
@@ -33,6 +37,13 @@ const App = () => (
             <ProtectedRoute>
               <AppLayout>
                 <Index />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Dashboard />
               </AppLayout>
             </ProtectedRoute>
           } />
@@ -78,12 +89,20 @@ const App = () => (
               </AppLayout>
             </ProtectedRoute>
           } />
+          <Route path="/alerts" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Alerts />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<NotFound />} />
         </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
     </PeriodProvider>
+    </FiltersProvider>
   </QueryClientProvider>
 );
 

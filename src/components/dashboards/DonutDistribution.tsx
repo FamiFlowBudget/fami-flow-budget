@@ -168,7 +168,7 @@ export const DonutDistribution = ({
               <Legend 
                 verticalAlign="bottom" 
                 height={36}
-                formatter={(value, entry) => `${value} (${(entry.payload as any)?.percentage?.toFixed(1)}%)`}
+                formatter={(value, entry) => `${(entry.payload as any)?.categoryName} (${(entry.payload as any)?.percentage?.toFixed(1)}%)`}
               />
             </PieChart>
           </ResponsiveContainer>
