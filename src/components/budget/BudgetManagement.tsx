@@ -15,8 +15,8 @@ export const BudgetManagement = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
   const [formData, setFormData] = useState({
-    categoryId: '',
-    memberId: '',
+    categoryId: 'all-categories',
+    memberId: 'all-members',
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
     amount: 0
@@ -31,8 +31,8 @@ export const BudgetManagement = () => {
     e.preventDefault();
     
     await upsertBudget({
-      categoryId: formData.categoryId || undefined,
-      memberId: formData.memberId || undefined,
+      categoryId: formData.categoryId === 'all-categories' ? undefined : formData.categoryId || undefined,
+      memberId: formData.memberId === 'all-members' ? undefined : formData.memberId || undefined,
       year: formData.year,
       month: formData.month,
       amount: formData.amount,
@@ -42,8 +42,8 @@ export const BudgetManagement = () => {
     setDialogOpen(false);
     setSelectedBudget(null);
     setFormData({
-      categoryId: '',
-      memberId: '',
+      categoryId: 'all-categories',
+      memberId: 'all-members',
       year: new Date().getFullYear(),
       month: new Date().getMonth() + 1,
       amount: 0
@@ -53,8 +53,8 @@ export const BudgetManagement = () => {
   const openEditDialog = (budget: any) => {
     setSelectedBudget(budget);
     setFormData({
-      categoryId: budget.categoryId || '',
-      memberId: budget.memberId || '',
+      categoryId: budget.categoryId || 'all-categories',
+      memberId: budget.memberId || 'all-members',
       year: budget.year,
       month: budget.month,
       amount: budget.amount
@@ -65,8 +65,8 @@ export const BudgetManagement = () => {
   const openCreateDialog = () => {
     setSelectedBudget(null);
     setFormData({
-      categoryId: '',
-      memberId: '',
+      categoryId: 'all-categories',
+      memberId: 'all-members',
       year: new Date().getFullYear(),
       month: new Date().getMonth() + 1,
       amount: 0
@@ -150,7 +150,7 @@ export const BudgetManagement = () => {
                     <SelectValue placeholder="Seleccionar categoría (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas las categorías</SelectItem>
+                    <SelectItem value="all-categories">Todas las categorías</SelectItem>
                     {categories.map(category => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -167,7 +167,7 @@ export const BudgetManagement = () => {
                     <SelectValue placeholder="Seleccionar miembro (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Toda la familia</SelectItem>
+                    <SelectItem value="all-members">Toda la familia</SelectItem>
                     {members.map(member => (
                       <SelectItem key={member.id} value={member.id}>
                         {member.name}
