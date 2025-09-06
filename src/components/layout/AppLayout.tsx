@@ -1,11 +1,16 @@
 import { ReactNode } from 'react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { LogOut, DollarSign } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AppLayoutProps {
   children: ReactNode;
 }
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
+  const { user, signOut } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -14,18 +19,26 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">$</span>
+                <DollarSign className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-xl">Presupuesto Familiar</span>
+              <span className="font-bold text-xl">Finanzas Familiares</span>
             </div>
           </div>
           
-          {/* Usuario actual - placeholder */}
+          {/* Usuario actual */}
           <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-primary font-medium text-sm">U</span>
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-sm font-medium">{user?.email}</span>
             </div>
-            <span className="hidden sm:inline text-sm font-medium">Usuario Demo</span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={signOut}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:ml-2 sm:inline">Salir</span>
+            </Button>
           </div>
         </div>
       </header>
