@@ -340,7 +340,7 @@ export const useBudgetSupabase = () => {
     });
   }, [expenses]);
 
-  // Calcular progreso por categoría
+  // Calcular progreso por categoría con desglose familiar
   const getCategoryProgress = useCallback((): BudgetProgress[] => {
     const currentMonthExpenses = getCurrentMonthExpenses();
     const now = new Date();
@@ -348,16 +348,19 @@ export const useBudgetSupabase = () => {
     const currentYear = now.getFullYear();
 
     return categories.map(category => {
-      const budget = budgets.find(b => 
+      // Buscar todos los presupuestos de esta categoría para el mes actual
+      const categoryBudgets = budgets.filter(b => 
         b.categoryId === category.id && 
         b.year === currentYear && 
         b.month === currentMonth
       );
 
+      // Sumar gastos de esta categoría
       const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
       const spentAmount = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
       
-      const budgetAmount = budget?.amount || 0;
+      // Sumar presupuestos familiares
+      const budgetAmount = categoryBudgets.reduce((sum, b) => sum + b.amount, 0);
       const percentage = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
       
       let status: 'success' | 'warning' | 'danger' = 'success';
@@ -372,20 +375,22 @@ export const useBudgetSupabase = () => {
         percentage,
         status,
       };
-    }).filter(p => p.budgetAmount > 0);
+    }).filter(p => p.budgetAmount > 0); // Solo mostrar categorías con presupuesto
   }, [categories, budgets, getCurrentMonthExpenses]);
 
-  // KPIs del dashboard
+  // KPIs del dashboard con totales familiares
   const getDashboardKPIs = useCallback((): DashboardKPIs => {
     const currentMonthExpenses = getCurrentMonthExpenses();
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
+    // Presupuesto total del mes (suma de todos los miembros)
     const totalBudget = budgets
       .filter(b => b.year === currentYear && b.month === currentMonth)
       .reduce((sum, b) => sum + b.amount, 0);
 
+    // Gasto total del mes
     const totalSpent = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
 
     const remaining = totalBudget - totalSpent;
@@ -404,6 +409,54 @@ export const useBudgetSupabase = () => {
       currency,
     };
   }, [getCurrentMonthExpenses, budgets, currency]);
+
+  // Obtener datos familiares por categoría
+  const getFamilyDataByCategory = useCallback(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const currentMonthExpenses = getCurrentMonthExpenses();
+
+    return categories.map(category => {
+      // Presupuestos por miembro para esta categoría
+      const categoryBudgets = budgets.filter(b => 
+        b.categoryId === category.id && 
+        b.year === currentYear && 
+        b.month === currentMonth
+      );
+
+      // Gastos por miembro para esta categoría
+      const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
+
+      // Datos por miembro
+      const memberData = members.map(member => {
+        const memberBudget = categoryBudgets.find(b => b.memberId === member.id);
+        const memberExpenses = categoryExpenses.filter(e => e.memberId === member.id);
+        const spentAmount = memberExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+        return {
+          member,
+          budgetAmount: memberBudget?.amount || 0,
+          spentAmount,
+          percentage: memberBudget?.amount > 0 ? (spentAmount / memberBudget.amount) * 100 : 0
+        };
+      });
+
+      // Totales familiares
+      const familyBudget = memberData.reduce((sum, md) => sum + md.budgetAmount, 0);
+      const familySpent = memberData.reduce((sum, md) => sum + md.spentAmount, 0);
+      const familyPercentage = familyBudget > 0 ? (familySpent / familyBudget) * 100 : 0;
+
+      return {
+        category,
+        memberData,
+        familyBudget,
+        familySpent,
+        familyPercentage,
+        hasData: familyBudget > 0
+      };
+    }).filter(cd => cd.hasData);
+  }, [categories, budgets, members, getCurrentMonthExpenses]);
 
   return {
     // Data
@@ -425,5 +478,6 @@ export const useBudgetSupabase = () => {
     getCurrentMonthExpenses,
     getCategoryProgress,
     getDashboardKPIs,
+    getFamilyDataByCategory,
   };
 };
