@@ -15,10 +15,7 @@ export const AppDrawer = () => {
   const { currentMember } = useBudgetSupabase();
   const location = useLocation();
   
-  console.log('Current member role:', currentMember?.role);
-  console.log('Current member object:', currentMember);
   const navItems = getVisibleNavItems(currentMember?.role || null);
-  console.log('Nav items returned:', navItems);
   
   const isActive = (href: string) => {
     if (href === '/') {

@@ -287,6 +287,94 @@ export const useBudgetSupabase = () => {
     return null;
   }, [user, toast]);
 
+  // Actualizar categoría existente
+  const updateCategory = useCallback(async (categoryId: string, updates: Partial<Omit<Category, 'id'>>) => {
+    if (!user) return null;
+
+    try {
+      const updateData: any = {};
+      if (updates.name) updateData.name = updates.name;
+      if (updates.icon) updateData.icon = updates.icon;
+      if (updates.color) updateData.color = updates.color;
+      if (updates.order !== undefined) updateData.order_index = updates.order;
+      if (updates.parentId !== undefined) updateData.parent_id = updates.parentId;
+
+      const { data, error } = await supabase
+        .from('categories')
+        .update(updateData)
+        .eq('id', categoryId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const updatedCategory: Category = {
+          id: data.id,
+          name: data.name,
+          icon: data.icon,
+          color: data.color,
+          order: data.order_index,
+          parentId: data.parent_id
+        };
+
+        setCategories(prev => prev.map(cat => 
+          cat.id === categoryId ? updatedCategory : cat
+        ).sort((a, b) => a.order - b.order));
+        
+        toast({
+          title: "Categoría actualizada",
+          description: "Los cambios se han guardado correctamente",
+        });
+        
+        return updatedCategory;
+      }
+    } catch (error) {
+      console.error('Error actualizando categoría:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la categoría",
+        variant: "destructive",
+      });
+    }
+    return null;
+  }, [user, toast]);
+
+  // Eliminar categoría
+  const deleteCategory = useCallback(async (categoryId: string) => {
+    if (!user) return false;
+
+    try {
+      // Verificar si hay gastos asociados a esta categoría
+      const { count } = await supabase
+        .from('expenses')
+        .select('*', { count: 'exact', head: true })
+        .eq('category_id', categoryId)
+        .eq('user_id', user.id);
+
+      // Si hay gastos asociados, no permitir eliminar
+      if (count && count > 0) {
+        throw new Error('No se puede eliminar la categoría porque tiene gastos asociados');
+      }
+
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', categoryId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+      
+      return true;
+    } catch (error) {
+      console.error('Error eliminando categoría:', error);
+      throw error; // Re-throw para que el componente maneje el error
+    }
+  }, [user]);
+
   // Agregar/actualizar presupuesto
   const upsertBudget = useCallback(async (budget: Omit<Budget, 'id'>) => {
     if (!user) return null;
@@ -556,6 +644,8 @@ export const useBudgetSupabase = () => {
     // Actions
     addExpense,
     addCategory,
+    updateCategory,
+    deleteCategory,
     upsertBudget,
     loadData,
     updateMemberProfile,

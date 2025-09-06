@@ -5,16 +5,49 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Tag, Palette } from 'lucide-react';
+import { Plus, Tag, Palette, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
+import { useToast } from '@/hooks/use-toast';
 import * as Icons from 'lucide-react';
 
 const iconOptions = [
-  'Home', 'ShoppingCart', 'Car', 'GraduationCap', 'Heart', 'Shield', 
-  'Gamepad2', 'Shirt', 'PiggyBank', 'AlertTriangle', 'Coffee', 'Plane',
-  'Music', 'Book', 'Smartphone', 'Laptop', 'Gift', 'Camera', 'Bicycle',
-  'Pizza', 'Stethoscope', 'Wrench', 'Briefcase', 'Baby'
+  // Hogar y Vida
+  'Home', 'Building', 'Building2', 'Warehouse', 'Store', 'House', 'Hotel',
+  // Transporte
+  'Car', 'Bus', 'Train', 'Plane', 'Bike', 'Motorcycle', 'Truck', 'Ship', 'Taxi', 'CarTaxiFront',
+  // Alimentación y Compras
+  'ShoppingCart', 'ShoppingBag', 'Store', 'Pizza', 'Coffee', 'Utensils', 'ChefHat', 'Sandwich', 'Salad', 'IceCream',
+  // Salud y Bienestar
+  'Heart', 'Stethoscope', 'Pill', 'Activity', 'Dumbbell', 'Zap', 'Plus', 'Cross', 'Thermometer',
+  // Educación y Trabajo
+  'GraduationCap', 'BookOpen', 'Book', 'School', 'Briefcase', 'Laptop', 'Monitor', 'PenTool', 'Calculator',
+  // Entretenimiento
+  'Gamepad2', 'Music', 'Headphones', 'Camera', 'Film', 'Tv', 'Radio', 'Ticket', 'PartyPopper', 'Guitar',
+  // Ropa y Estilo
+  'Shirt', 'Crown', 'Glasses', 'Watch', 'Gem', 'Scissors', 'Palette', 'Sparkles',
+  // Finanzas y Ahorros
+  'PiggyBank', 'DollarSign', 'CreditCard', 'Wallet', 'Coins', 'Banknote', 'TrendingUp', 'TrendingDown', 'Target',
+  // Seguros y Emergencias
+  'Shield', 'ShieldAlert', 'ShieldCheck', 'AlertTriangle', 'AlertCircle', 'Siren', 'Lock', 'Key',
+  // Mascotas y Animales
+  'Dog', 'Cat', 'Fish', 'Bird', 'Rabbit', 'Turtle', 'Bug',
+  // Tecnología
+  'Smartphone', 'Tablet', 'Computer', 'Keyboard', 'Mouse', 'Headphones', 'Speaker', 'Wifi', 'Battery',
+  // Servicios
+  'Zap', 'Droplets', 'Flame', 'Wind', 'Sun', 'Cloud', 'Wifi', 'Phone', 'Mail', 'MessageCircle',
+  // Deportes y Fitness
+  'Dumbbell', 'Activity', 'Award', 'Trophy', 'Medal', 'Target', 'Crosshair', 'Mountain', 'Waves',
+  // Viajes y Ocio
+  'MapPin', 'Map', 'Compass', 'Luggage', 'Tent', 'Palmtree', 'Umbrella', 'Camera', 'Binoculars',
+  // Herramientas y Mantenimiento
+  'Wrench', 'Hammer', 'Screwdriver', 'Settings', 'Cog', 'Tool', 'HardHat',
+  // Regalos y Ocasiones Especiales
+  'Gift', 'GiftBox', 'Cake', 'PartyPopper', 'Balloon', 'Heart', 'Star', 'Sparkles', 'Crown',
+  // Otros
+  'Tag', 'Folder', 'Archive', 'Package', 'Box', 'Circle', 'Square', 'Triangle', 'Hexagon', 'Star'
 ];
 
 const colorOptions = [
@@ -23,32 +56,93 @@ const colorOptions = [
 ];
 
 export const CategoryManagement = () => {
-  const { categories, addCategory, loading } = useBudgetSupabase();
+  const { categories, addCategory, updateCategory, deleteCategory, loading } = useBudgetSupabase();
+  const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     icon: 'Tag',
     color: 'blue'
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const maxOrder = Math.max(...categories.map(c => c.order), 0);
-    
-    await addCategory({
-      name: formData.name,
-      icon: formData.icon,
-      color: formData.color,
-      order: maxOrder + 1
-    });
-    
-    setDialogOpen(false);
+  const resetForm = () => {
     setFormData({
       name: '',
       icon: 'Tag',
       color: 'blue'
     });
+    setEditingCategory(null);
+  };
+
+  const handleEdit = (category: any) => {
+    setEditingCategory(category);
+    setFormData({
+      name: category.name,
+      icon: category.icon,
+      color: category.color
+    });
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async (categoryId: string, categoryName: string) => {
+    try {
+      await deleteCategory(categoryId);
+      toast({
+        title: "Categoría eliminada",
+        description: `"${categoryName}" ha sido eliminada correctamente`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error al eliminar",
+        description: error instanceof Error ? error.message : "No se pudo eliminar la categoría",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      if (editingCategory) {
+        // Update existing category
+        await updateCategory(editingCategory.id, {
+          name: formData.name,
+          icon: formData.icon,
+          color: formData.color
+        });
+
+        toast({
+          title: "Categoría actualizada",
+          description: `"${formData.name}" ha sido actualizada correctamente`,
+        });
+      } else {
+        // Create new category
+        const maxOrder = Math.max(...categories.map(c => c.order), 0);
+        
+        await addCategory({
+          name: formData.name,
+          icon: formData.icon,
+          color: formData.color,
+          order: maxOrder + 1
+        });
+
+        toast({
+          title: "Categoría creada",
+          description: `"${formData.name}" ha sido agregada correctamente`,
+        });
+      }
+      
+      setDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo guardar la categoría",
+        variant: "destructive"
+      });
+    }
   };
 
   const getIconComponent = (iconName: string) => {
@@ -91,18 +185,23 @@ export const CategoryManagement = () => {
             Organiza tus gastos con categorías personalizadas
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) resetForm();
+        }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={resetForm}>
               <Plus className="w-4 h-4 mr-2" />
               Nueva Categoría
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Nueva Categoría</DialogTitle>
+              <DialogTitle>
+                {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
+              </DialogTitle>
               <DialogDescription>
-                Crea una nueva categoría para organizar tus gastos
+                {editingCategory ? 'Modifica los datos de la categoría' : 'Crea una nueva categoría para organizar tus gastos'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -166,11 +265,14 @@ export const CategoryManagement = () => {
               </div>
 
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => {
+                  setDialogOpen(false);
+                  resetForm();
+                }}>
                   Cancelar
                 </Button>
                 <Button type="submit">
-                  Crear Categoría
+                  {editingCategory ? 'Actualizar' : 'Crear'} Categoría
                 </Button>
               </DialogFooter>
             </form>
@@ -198,11 +300,61 @@ export const CategoryManagement = () => {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {categories.map((category) => (
-                <div key={category.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
-                  <Badge className={`flex items-center gap-2 w-fit ${getColorClass(category.color)}`}>
-                    {getIconComponent(category.icon)}
-                    {category.name}
-                  </Badge>
+                <div key={category.id} className="group p-4 border rounded-lg hover:shadow-md transition-all duration-200 relative">
+                  <div className="flex items-center justify-between">
+                    <Badge className={`flex items-center gap-2 ${getColorClass(category.color)}`}>
+                      {getIconComponent(category.icon)}
+                      {category.name}
+                    </Badge>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(category)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Eliminar categoría?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Estás a punto de eliminar la categoría "{category.name}". 
+                                Esta acción no se puede deshacer y podría afectar gastos existentes.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(category.id, category.name)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Orden: {category.order}
+                  </div>
                 </div>
               ))}
             </div>
