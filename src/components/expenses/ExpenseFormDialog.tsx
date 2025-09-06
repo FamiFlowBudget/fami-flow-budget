@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useBudgetData } from '@/hooks/useBudgetData';
+import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { PaymentMethod } from '@/types/budget';
 import { Calculator, Calendar, CreditCard, Tag } from 'lucide-react';
 
@@ -33,7 +33,7 @@ export const ExpenseFormDialog = ({ isOpen, onClose }: ExpenseFormDialogProps) =
     }
   });
   
-  const { addExpense, categories, currentMember, currency } = useBudgetData();
+  const { addExpense, categories, currentMember, currency } = useBudgetSupabase();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 

@@ -2,14 +2,18 @@ import { DashboardKPIs } from './DashboardKPIs';
 import { CategoryProgress } from './CategoryProgress';
 import { RecentExpenses } from './RecentExpenses';
 import { MonthlyTrend } from './MonthlyTrend';
-import { useBudgetData } from '@/hooks/useBudgetData';
+import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 
 export const Dashboard = () => {
-  const { getDashboardKPIs, getCategoryProgress, expenses } = useBudgetData();
+  const { getDashboardKPIs, getCategoryProgress, expenses, loading } = useBudgetSupabase();
   
   const kpis = getDashboardKPIs();
   const categoryProgress = getCategoryProgress();
   const recentExpenses = expenses.slice(0, 5); // Últimos 5 gastos
+
+  if (loading) {
+    return <div className="flex justify-center p-8">Cargando...</div>;
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">

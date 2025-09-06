@@ -1,8 +1,9 @@
 import { ReactNode } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LogOut, DollarSign } from 'lucide-react';
+import { LogOut, DollarSign, Home, PieChart, Tag } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { Link, useLocation } from 'react-router-dom';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -10,6 +11,9 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { user, signOut } = useAuth();
+  const location = useLocation();
+  
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,23 +54,34 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
       {/* Navegación móvil */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t lg:hidden">
-        <div className="grid grid-cols-4 h-16">
-          <button className="flex flex-col items-center justify-center space-y-1 text-primary">
-            <div className="h-5 w-5 rounded bg-current opacity-80" />
-            <span className="text-xs font-medium">Inicio</span>
-          </button>
-          <button className="flex flex-col items-center justify-center space-y-1 text-muted-foreground hover:text-primary">
-            <div className="h-5 w-5 rounded bg-current opacity-60" />
-            <span className="text-xs">Gastos</span>
-          </button>
-          <button className="flex flex-col items-center justify-center space-y-1 text-muted-foreground hover:text-primary">
-            <div className="h-5 w-5 rounded bg-current opacity-60" />
+        <div className="grid grid-cols-3 h-16">
+          <Link 
+            to="/" 
+            className={`flex flex-col items-center justify-center space-y-1 ${
+              isActive('/') ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <Home className="h-5 w-5" />
+            <span className="text-xs font-medium">Dashboard</span>
+          </Link>
+          <Link 
+            to="/budget" 
+            className={`flex flex-col items-center justify-center space-y-1 ${
+              isActive('/budget') ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <PieChart className="h-5 w-5" />
             <span className="text-xs">Presupuesto</span>
-          </button>
-          <button className="flex flex-col items-center justify-center space-y-1 text-muted-foreground hover:text-primary">
-            <div className="h-5 w-5 rounded bg-current opacity-60" />
-            <span className="text-xs">Reportes</span>
-          </button>
+          </Link>
+          <Link 
+            to="/categories" 
+            className={`flex flex-col items-center justify-center space-y-1 ${
+              isActive('/categories') ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <Tag className="h-5 w-5" />
+            <span className="text-xs">Categorías</span>
+          </Link>
         </div>
       </nav>
 
