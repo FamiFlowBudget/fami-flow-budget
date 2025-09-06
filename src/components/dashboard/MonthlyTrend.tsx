@@ -1,8 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 
-// Datos de ejemplo para la tendencia (en una app real vendría del hook)
+// Datos de ejemplo para la tendencia
 const generateMockData = () => {
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
   return months.map((month, index) => ({
@@ -12,21 +11,62 @@ const generateMockData = () => {
   }));
 };
 
-// Tooltip personalizado para evitar errores de tipos
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-background p-3 border rounded-lg shadow-soft">
-        <p className="font-medium">{label}</p>
-        {payload.map((entry: any, index: number) => (
-          <p key={index} className="text-sm" style={{ color: entry.color }}>
-            {entry.name === 'presupuesto' ? 'Presupuesto' : 'Gasto Real'}: ${entry.value.toLocaleString('es-CL')}
-          </p>
-        ))}
+// Componente de gráfico simple con CSS (alternativa a Recharts)
+const SimpleLineChart = ({ data }: { data: any[] }) => {
+  const maxValue = Math.max(...data.flatMap(d => [d.presupuesto, d.gasto]));
+  
+  return (
+    <div className="relative h-64 border rounded-lg p-4 bg-muted/10">
+      <div className="absolute inset-4">
+        {/* Grid lines */}
+        <div className="absolute inset-0 grid grid-cols-6 border-l border-border/30">
+          {Array.from({length: 6}).map((_, i) => (
+            <div key={i} className="border-r border-border/30 relative">
+              <span className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground">
+                {data[i]?.month}
+              </span>
+            </div>
+          ))}
+        </div>
+        
+        {/* Data visualization */}
+        <svg className="w-full h-full" viewBox="0 0 300 200">
+          {/* Presupuesto line */}
+          <polyline
+            points={data.map((d, i) => `${(i * 50) + 25},${200 - (d.presupuesto / maxValue) * 180}`).join(' ')}
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth="3"
+            strokeDasharray="5,5"
+          />
+          {/* Gasto line */}
+          <polyline
+            points={data.map((d, i) => `${(i * 50) + 25},${200 - (d.gasto / maxValue) * 180}`).join(' ')}
+            fill="none"
+            stroke="hsl(var(--expense))"
+            strokeWidth="3"
+          />
+          {/* Data points */}
+          {data.map((d, i) => (
+            <g key={i}>
+              <circle
+                cx={(i * 50) + 25}
+                cy={200 - (d.presupuesto / maxValue) * 180}
+                r="4"
+                fill="hsl(var(--primary))"
+              />
+              <circle
+                cx={(i * 50) + 25}
+                cy={200 - (d.gasto / maxValue) * 180}
+                r="4"
+                fill="hsl(var(--expense))"
+              />
+            </g>
+          ))}
+        </svg>
       </div>
-    );
-  }
-  return null;
+    </div>
+  );
 };
 
 export const MonthlyTrend = () => {
@@ -43,45 +83,7 @@ export const MonthlyTrend = () => {
         <h3 className="font-semibold text-lg">Tendencia de 6 Meses</h3>
       </div>
 
-      <div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-            <XAxis 
-              dataKey="month" 
-              axisLine={false}
-              tickLine={false}
-              className="text-xs"
-            />
-            <YAxis 
-              tickFormatter={formatCurrency}
-              axisLine={false}
-              tickLine={false}
-              className="text-xs"
-            />
-            <Tooltip 
-              content={<CustomTooltip />}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="presupuesto" 
-              stroke="hsl(var(--primary))" 
-              strokeWidth={3}
-              strokeDasharray="5 5"
-              dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6, stroke: 'hsl(var(--primary))', strokeWidth: 2 }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="gasto" 
-              stroke="hsl(var(--expense))" 
-              strokeWidth={3}
-              dot={{ fill: 'hsl(var(--expense))', strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6, stroke: 'hsl(var(--expense))', strokeWidth: 2 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <SimpleLineChart data={data} />
 
       <div className="flex items-center justify-center space-x-6 mt-4 text-sm">
         <div className="flex items-center space-x-2">
