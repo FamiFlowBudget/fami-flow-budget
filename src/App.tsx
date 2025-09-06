@@ -5,18 +5,24 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AppLayout } from "@/components/layout/AppLayout";
+import { PeriodProvider } from "@/providers/PeriodProvider";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Budget from "./pages/Budget";
 import Categories from "./pages/Categories";
+import Expenses from "./pages/Expenses";
+import Import from "./pages/Import";
+import Reports from "./pages/Reports";
+import Accounts from "./pages/Accounts";
 import NotFound from "./pages/NotFound";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
+    <PeriodProvider>
+      <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -44,11 +50,40 @@ const App = () => (
               </AppLayout>
             </ProtectedRoute>
           } />
+          <Route path="/expenses" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Expenses />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/import" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Import />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/reports" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Reports />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/accounts" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Accounts />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<NotFound />} />
         </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
+    </PeriodProvider>
   </QueryClientProvider>
 );
 

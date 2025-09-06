@@ -1,0 +1,214 @@
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Search, Bell, DollarSign, Wifi, WifiOff } from 'lucide-react';
+import { AppDrawer } from './AppDrawer';
+import { GlobalSearch } from './GlobalSearch';
+import { PeriodSelector } from '../PeriodSelector';
+import { ThemeToggle } from '../ThemeToggle';
+import { UserMenu } from '../UserMenu';
+import { NewExpenseButton } from '../NewExpenseButton';
+import { getVisibleNavItems } from '@/lib/nav';
+import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
+import { useAuth } from '@/hooks/useAuth';
+import { usePeriod } from '@/providers/PeriodProvider';
+
+export const AppHeader = () => {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const { user } = useAuth();
+  const { currentMember, getDashboardKPIs } = useBudgetSupabase();
+  const { getPeriodLabel } = usePeriod();
+  const location = useLocation();
+  
+  const navItems = getVisibleNavItems(currentMember?.role || null);
+  const kpis = getDashboardKPIs();
+  
+  // Online/offline detection
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const isActive = (href: string) => {
+    if (href === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(href);
+  };
+
+  const getBudgetUsageColor = (percentage: number) => {
+    if (percentage >= 90) return 'destructive';
+    if (percentage >= 75) return 'secondary';
+    return 'default';
+  };
+
+  if (!user) {
+    // Header para usuarios no autenticados
+    return (
+      <header 
+        className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <div className="container flex h-16 items-center justify-between px-4">
+          <Link to="/" className="flex items-center space-x-2">
+            <DollarSign className="h-6 w-6 text-primary" />
+            <span className="font-bold text-lg">Family Budget Tracker</span>
+          </Link>
+          
+          <div className="flex items-center space-x-4">
+            <ThemeToggle />
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/auth">Iniciar sesión</Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link to="/auth">Crear familia</Link>
+            </Button>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  return (
+    <>
+      <header 
+        className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        role="banner"
+      >
+        <div className="container flex h-16 items-center justify-between px-4">
+          {/* Left: Brand + Mobile Menu */}
+          <div className="flex items-center space-x-4">
+            <AppDrawer />
+            
+            <Link 
+              to="/" 
+              className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+              aria-label="Ir al inicio"
+            >
+              <DollarSign className="h-6 w-6 text-primary" />
+              <span className="font-bold text-lg hidden sm:block">Family Budget Tracker</span>
+              <span className="font-bold text-base sm:hidden">FBT</span>
+            </Link>
+          </div>
+
+          {/* Center: Navigation (Desktop) */}
+          <nav className="hidden lg:flex items-center space-x-1" role="navigation" aria-label="Navegación principal">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive(item.href)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  }`}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{item.label}</span>
+                  {/* Budget usage indicator for Presupuestos */}
+                  {item.href === '/budget' && kpis.totalBudget > 0 && (
+                    <Badge 
+                      variant={getBudgetUsageColor(kpis.percentage)}
+                      className="ml-1 text-xs px-1.5 py-0.5"
+                    >
+                      {Math.round(kpis.percentage)}%
+                    </Badge>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right: Search + Actions */}
+          <div className="flex items-center space-x-2">
+            {/* Global Search (Desktop) */}
+            <div className="hidden md:block">
+              <Button
+                variant="outline"
+                onClick={() => setSearchOpen(true)}
+                className="h-9 px-3 text-sm text-muted-foreground justify-start"
+                aria-label="Buscar (Ctrl + K)"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                <span className="hidden lg:inline">Buscar...</span>
+                <kbd className="hidden lg:inline pointer-events-none ml-auto h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </Button>
+            </div>
+
+            {/* Mobile Search */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSearchOpen(true)}
+              className="h-9 w-9 p-0 md:hidden"
+              aria-label="Buscar"
+            >
+              <Search className="w-4 h-4" />
+            </Button>
+
+            {/* Period Selector */}
+            <div className="hidden sm:block">
+              <PeriodSelector />
+            </div>
+
+            {/* Add Expense */}
+            <NewExpenseButton />
+
+            {/* Notifications */}
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 relative">
+              <Bell className="w-4 h-4" />
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 text-xs p-0 flex items-center justify-center">
+                3
+              </Badge>
+            </Button>
+
+            {/* Connection Status */}
+            <div className="hidden lg:flex items-center" title={isOnline ? "En línea" : "Sin conexión"}>
+              {isOnline ? (
+                <Wifi className="w-4 h-4 text-green-500" />
+              ) : (
+                <WifiOff className="w-4 h-4 text-red-500" />
+              )}
+            </div>
+
+            {/* Theme Toggle (Desktop) */}
+            <div className="hidden lg:block">
+              <ThemeToggle />
+            </div>
+
+            {/* User Menu */}
+            <UserMenu />
+          </div>
+        </div>
+
+        {/* Mobile Period Selector */}
+        <div className="sm:hidden border-t bg-muted/30 px-4 py-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Período actual:</span>
+            <PeriodSelector />
+          </div>
+        </div>
+      </header>
+
+      {/* Global Search Modal */}
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
+    </>
+  );
+};
