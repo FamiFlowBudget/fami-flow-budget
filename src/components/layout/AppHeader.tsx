@@ -14,6 +14,7 @@ import { getVisibleNavItems } from '@/lib/nav';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { useAuth } from '@/hooks/useAuth';
 import { usePeriod } from '@/providers/PeriodProvider';
+import { useAlerts } from '@/hooks/useAlerts';
 
 export const AppHeader = () => {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -21,6 +22,7 @@ export const AppHeader = () => {
   const { user } = useAuth();
   const { currentMember, getDashboardKPIs } = useBudgetSupabase();
   const { getPeriodLabel } = usePeriod();
+  const { alertCount } = useAlerts();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -180,9 +182,11 @@ export const AppHeader = () => {
               onClick={() => navigate('/alerts')}
             >
               <Bell className="w-4 h-4" />
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 text-xs p-0 flex items-center justify-center">
-                3
-              </Badge>
+              {alertCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 text-xs p-0 flex items-center justify-center">
+                  {alertCount}
+                </Badge>
+              )}
             </Button>
 
             {/* Connection Status */}

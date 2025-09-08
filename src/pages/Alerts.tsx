@@ -4,53 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { AlertTriangle, TrendingUp, Bell, Settings, User, DollarSign } from "lucide-react";
-import { useBudgetSupabase } from "@/hooks/useBudgetSupabase";
-import { useState } from "react";
-import { formatCurrency } from "@/types/budget";
+import { useAlerts } from "@/hooks/useAlerts";
 
 export default function Alerts() {
-  const { getCategoryProgress, members, currency } = useBudgetSupabase();
-  const categoryProgress = getCategoryProgress();
-  
-  const [settings, setSettings] = useState({
-    categoryAlerts: true,
-    memberAlerts: true,
-    budgetThreshold: 85,
-    overspendingThreshold: 100,
-    emailNotifications: true,
-    pushNotifications: false
-  });
-
-  // Generar alertas activas
-  const activeAlerts = [
-    ...categoryProgress
-      .filter(cat => cat.percentage >= settings.budgetThreshold)
-      .map(cat => ({
-        id: `cat-${cat.categoryId}`,
-        type: cat.percentage >= settings.overspendingThreshold ? 'overspending' : 'high_usage',
-        title: cat.percentage >= settings.overspendingThreshold ? 
-          `Sobrepasaste el presupuesto en ${cat.categoryName}` :
-          `Cerca del límite en ${cat.categoryName}`,
-        description: `Has gastado ${formatCurrency(cat.spentAmount, currency)} de ${formatCurrency(cat.budgetAmount, currency)} (${cat.percentage.toFixed(1)}%)`,
-        category: cat.categoryName,
-        percentage: cat.percentage,
-        amount: cat.spentAmount,
-        timestamp: new Date().toISOString()
-      })),
-    
-    // Alertas de miembros (simuladas)
-    ...members
-      .filter((_, index) => index < 2) // Solo mostrar algunas alertas de ejemplo
-      .map((member, index) => ({
-        id: `member-${member.id}`,
-        type: 'member_overspending',
-        title: `${member.name} ha gastado mucho este mes`,
-        description: `Gastos elevados en comparación con meses anteriores`,
-        member: member.name,
-        percentage: 120 + index * 10,
-        timestamp: new Date(Date.now() - index * 86400000).toISOString()
-      }))
-  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const { activeAlerts, settings, setSettings } = useAlerts();
 
   const getAlertIcon = (type: string) => {
     switch (type) {
