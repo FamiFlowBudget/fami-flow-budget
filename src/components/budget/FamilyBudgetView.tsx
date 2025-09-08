@@ -12,8 +12,14 @@ import { PeriodSelector } from '@/components/PeriodSelector';
 import { BudgetFilters } from './BudgetFilters';
 import { MonthlyBudgetView } from './MonthlyBudgetView';
 import { AnnualBudgetView } from './AnnualBudgetView';
-import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getCategoryIconById } from '@/lib/icons';
+
+// Helper component for category icons
+const CategoryIcon = ({ category, categories }: { category: any; categories: any[] }) => {
+  const IconComponent = getCategoryIconById(category.id, categories);
+  return <IconComponent className="w-4 h-4" />;
+};
 
 export const FamilyBudgetView = () => {
   const { categories, members, currentMember, upsertBudget, deleteBudget, loading } = useBudgetSupabase();
@@ -93,7 +99,7 @@ export const FamilyBudgetView = () => {
   };
 
   const getIconComponent = (iconName: string) => {
-    const IconComponent = (Icons as any)[iconName] || Icons.Tag;
+    const IconComponent = getCategoryIconById(iconName, categories);
     return <IconComponent className="w-4 h-4" />;
   };
 
@@ -184,7 +190,7 @@ export const FamilyBudgetView = () => {
                         {categories.map(category => (
                           <SelectItem key={category.id} value={category.id}>
                             <div className="flex items-center gap-2">
-                              {getIconComponent(category.icon)}
+                              <CategoryIcon category={category} categories={categories} />
                               {category.name}
                             </div>
                           </SelectItem>
