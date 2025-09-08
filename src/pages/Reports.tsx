@@ -34,12 +34,12 @@ export default function Reports() {
   const [activeTab, setActiveTab] = useState('financial');
 
   // Datos reales del dashboard
-  const kpis = getDashboardKPIs();
-  const categoryProgress = getCategoryProgress();
+  const kpis = getDashboardKPIs(period);
+  const categoryProgress = getCategoryProgress(period);
   const yearTrendData = getYearTrendData();
-  const dailyBurnData = getDailyBurnData();
-  const familyData = getFamilyDataByCategory();
-  const currentMonthExpenses = getCurrentMonthExpenses();
+  const dailyBurnData = getDailyBurnData(period);
+  const familyData = getFamilyDataByCategory(period);
+  const currentMonthExpenses = getCurrentMonthExpenses(period);
 
   // Datos para distribución (donut)
   const distributionData = categories.map((cat, i) => {

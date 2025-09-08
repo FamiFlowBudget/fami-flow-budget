@@ -546,32 +546,30 @@ export const useBudgetSupabase = () => {
     return null;
   }, [user, toast]);
 
-  // Obtener gastos del mes actual
-  const getCurrentMonthExpenses = useCallback(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
+  // Obtener gastos del mes actual o período especificado
+  const getCurrentMonthExpenses = useCallback((period?: { month: number; year: number }) => {
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
     
     return expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
-      return expenseDate.getFullYear() === currentYear && 
-             expenseDate.getMonth() + 1 === currentMonth;
+      return expenseDate.getFullYear() === targetYear && 
+             expenseDate.getMonth() + 1 === targetMonth;
     });
   }, [expenses]);
 
   // Calcular progreso por categoría con desglose familiar
-  const getCategoryProgress = useCallback((): BudgetProgress[] => {
-    const currentMonthExpenses = getCurrentMonthExpenses();
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
+  const getCategoryProgress = useCallback((period?: { month: number; year: number }): BudgetProgress[] => {
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
 
     return categories.map(category => {
-      // Buscar todos los presupuestos de esta categoría para el mes actual
+      // Buscar todos los presupuestos de esta categoría para el período especificado
       const categoryBudgets = budgets.filter(b => 
         b.categoryId === category.id && 
-        b.year === currentYear && 
-        b.month === currentMonth
+        b.year === targetYear && 
+        b.month === targetMonth
       );
 
       // Sumar gastos de esta categoría
@@ -598,15 +596,15 @@ export const useBudgetSupabase = () => {
   }, [categories, budgets, getCurrentMonthExpenses]);
 
   // KPIs del dashboard con totales familiares
-  const getDashboardKPIs = useCallback((): DashboardKPIs => {
-    const currentMonthExpenses = getCurrentMonthExpenses();
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
+  const getDashboardKPIs = useCallback((period?: { month: number; year: number }): DashboardKPIs => {
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+    
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
 
     // Presupuesto total del mes (suma de todos los miembros)
     const totalBudget = budgets
-      .filter(b => b.year === currentYear && b.month === currentMonth)
+      .filter(b => b.year === targetYear && b.month === targetMonth)
       .reduce((sum, b) => sum + b.amount, 0);
 
     // Gasto total del mes
@@ -630,18 +628,17 @@ export const useBudgetSupabase = () => {
   }, [getCurrentMonthExpenses, budgets, currency]);
 
   // Obtener datos familiares por categoría
-  const getFamilyDataByCategory = useCallback(() => {
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const currentMonthExpenses = getCurrentMonthExpenses();
+  const getFamilyDataByCategory = useCallback((period?: { month: number; year: number }) => {
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
 
     return categories.map(category => {
       // Presupuestos por miembro para esta categoría
       const categoryBudgets = budgets.filter(b => 
         b.categoryId === category.id && 
-        b.year === currentYear && 
-        b.month === currentMonth
+        b.year === targetYear && 
+        b.month === targetMonth
       );
 
       // Gastos por miembro para esta categoría
@@ -711,15 +708,14 @@ export const useBudgetSupabase = () => {
   }, [expenses, budgets]);
 
   // Calcular datos para burn rate diario
-  const getDailyBurnData = useCallback(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  const getDailyBurnData = useCallback((period?: { month: number; year: number }) => {
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+    const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
     
-    const monthExpenses = getCurrentMonthExpenses();
+    const monthExpenses = getCurrentMonthExpenses(period);
     const monthBudgets = budgets.filter(b => 
-      b.year === currentYear && b.month === currentMonth
+      b.year === targetYear && b.month === targetMonth
     );
     const monthBudget = monthBudgets.reduce((sum, b) => sum + b.amount, 0);
     const dailyTarget = monthBudget / daysInMonth;
@@ -735,7 +731,7 @@ export const useBudgetSupabase = () => {
       
       return {
         day,
-        date: `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`,
+        date: `${targetYear}-${targetMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`,
         actualSpent,
         targetSpent
       };
