@@ -5,7 +5,8 @@ import {
   Category, 
   Expense, 
   Budget, 
-  FamilyMember, 
+  FamilyMember,
+  FamilyMemberRole,
   BudgetProgress,
   DashboardKPIs,
   Currency
@@ -41,6 +42,102 @@ export const useBudgetSupabase = () => {
         ? { ...member, ...updates }
         : member
     ));
+  };
+
+  // Función para actualizar cualquier miembro (solo admins)
+  const updateAnyMemberProfile = async (memberId: string, updates: { name?: string; email?: string; photoUrl?: string }) => {
+    if (!user || currentMember?.role !== 'admin') throw new Error('Unauthorized');
+    
+    const { error } = await supabase
+      .from('family_members')
+      .update(updates)
+      .eq('id', memberId)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+
+    // Actualizar estado local
+    setMembers(prev => prev.map(member => 
+      member.id === memberId 
+        ? { ...member, ...updates }
+        : member
+    ));
+  };
+
+  // Agregar nuevo miembro familiar
+  const addFamilyMember = async (memberData: Omit<FamilyMember, 'id'>) => {
+    if (!user || currentMember?.role !== 'admin') return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('family_members')
+        .insert({
+          user_id: user.id,
+          name: memberData.name,
+          email: memberData.email,
+          role: memberData.role,
+          photo_url: memberData.photoUrl,
+          active: true
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newMember: FamilyMember = {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role as FamilyMemberRole,
+          photoUrl: data.photo_url,
+          active: data.active
+        };
+
+        setMembers(prev => [...prev, newMember]);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error agregando miembro:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo agregar el miembro",
+        variant: "destructive",
+      });
+    }
+    return false;
+  };
+
+  // Eliminar miembro familiar
+  const deleteFamilyMember = async (memberId: string) => {
+    if (!user || currentMember?.role !== 'admin' || memberId === currentMember?.id) return false;
+
+    try {
+      const { error } = await supabase
+        .from('family_members')
+        .delete()
+        .eq('id', memberId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setMembers(prev => prev.filter(member => member.id !== memberId));
+      
+      toast({
+        title: "Miembro eliminado",
+        description: "El miembro ha sido eliminado de la familia"
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error eliminando miembro:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el miembro",
+        variant: "destructive",
+      });
+    }
+    return false;
   };
 
   // Cargar datos iniciales
@@ -757,6 +854,9 @@ export const useBudgetSupabase = () => {
     upsertBudget,
     loadData,
     updateMemberProfile,
+    updateAnyMemberProfile,
+    addFamilyMember,
+    deleteFamilyMember,
     
     // Computed
     getCurrentMonthExpenses,
