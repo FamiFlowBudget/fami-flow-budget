@@ -3,12 +3,56 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Database, Trash2, Plus } from 'lucide-react';
 
 export const DemoDataGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const { categories, currency, upsertBudget, addExpense, members } = useBudgetSupabase();
   const { toast } = useToast();
+
+  const _clearDataSilently = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+
+    // Eliminar gastos
+    const { error: expensesError } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (expensesError) throw expensesError;
+
+    // Eliminar presupuestos  
+    const { error: budgetsError } = await supabase
+      .from('budgets')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (budgetsError) throw budgetsError;
+  };
+
+  const clearAllData = async () => {
+    setIsClearing(true);
+    
+    try {
+      await _clearDataSilently();
+      toast({
+        title: "¡Datos limpiados!",
+        description: "Se eliminaron todos los presupuestos y gastos",
+      });
+    } catch (error) {
+      console.error('Error limpiando datos:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron limpiar los datos",
+        variant: "destructive",
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   const generateDemoData = async () => {
     if (categories.length === 0 || members.length === 0) {
@@ -23,26 +67,45 @@ export const DemoDataGenerator = () => {
     setIsGenerating(true);
     
     try {
-      // Generar presupuestos de ejemplo
+      // Primero limpiar datos existentes silenciosamente
+      await _clearDataSilently();
+      
+      // Generar presupuestos de ejemplo más realistas
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth() + 1;
       
-      for (let i = 0; i < categories.length; i++) {
-        const category = categories[i];
+      // Presupuestos realistas por categoría (en CLP)
+      const budgetAmounts = {
+        'Alimentación': 150000,
+        'Transporte': 80000,
+        'Entretenimiento': 50000,
+        'Salud': 40000,
+        'Educación': 60000,
+        'Hogar': 100000,
+        'Ropa': 30000,
+        'Otros': 20000
+      };
+
+      // Crear presupuestos para el miembro principal
+      const mainMember = members[0];
+      
+      for (const category of categories) {
+        const amount = budgetAmounts[category.name] || 50000;
         await upsertBudget({
           categoryId: category.id,
+          memberId: mainMember.id,
           year: currentYear,
           month: currentMonth,
-          amount: (i + 1) * 100000, // Montos variados
+          amount,
           currency,
         });
       }
 
-      // Generar algunos gastos de ejemplo
+      // Generar gastos de ejemplo
       const demoExpenses = [
         {
-          memberId: members[0].id,
-          categoryId: categories[1]?.id || categories[0].id, // Alimentación o primera categoría
+          memberId: mainMember.id,
+          categoryId: categories.find(c => c.name === 'Alimentación')?.id || categories[0].id,
           amount: 45000,
           currency,
           description: 'Supermercado semanal',
@@ -52,26 +115,26 @@ export const DemoDataGenerator = () => {
           date: new Date().toISOString().split('T')[0],
         },
         {
-          memberId: members[0].id,
-          categoryId: categories[2]?.id || categories[0].id, // Transporte o primera categoría
+          memberId: mainMember.id,
+          categoryId: categories.find(c => c.name === 'Transporte')?.id || categories[0].id,
           amount: 15000,
           currency,
           description: 'Combustible',
           merchant: 'Copec',
           paymentMethod: 'credit' as const,
           tags: [],
-          date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Ayer
+          date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
         },
         {
-          memberId: members[0].id,
-          categoryId: categories[6]?.id || categories[0].id, // Entretenimiento o primera categoría
+          memberId: mainMember.id,
+          categoryId: categories.find(c => c.name === 'Entretenimiento')?.id || categories[0].id,
           amount: 25000,
           currency,
           description: 'Cine familiar',
           merchant: 'Cinemark',
           paymentMethod: 'cash' as const,
           tags: [],
-          date: new Date(Date.now() - 172800000).toISOString().split('T')[0], // Hace 2 días
+          date: new Date(Date.now() - 172800000).toISOString().split('T')[0],
         }
       ];
 
@@ -81,7 +144,7 @@ export const DemoDataGenerator = () => {
 
       toast({
         title: "¡Datos demo generados!",
-        description: "Se crearon presupuestos y gastos de ejemplo",
+        description: "Se crearon presupuestos y gastos consistentes",
       });
 
     } catch (error) {
@@ -94,14 +157,6 @@ export const DemoDataGenerator = () => {
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const clearAllData = () => {
-    toast({
-      title: "Función no disponible",
-      description: "Esta función no está disponible con datos en Supabase. Los datos persisten en la base de datos.",
-      variant: "destructive",
-    });
   };
 
   return (
@@ -133,10 +188,10 @@ export const DemoDataGenerator = () => {
             variant="outline"
             size="sm"
             className="h-8"
-            disabled
+            disabled={isClearing}
           >
             <Trash2 className="h-3 w-3 mr-1" />
-            Limpiar
+            {isClearing ? 'Limpiando...' : 'Limpiar'}
           </Button>
         </div>
       </div>
