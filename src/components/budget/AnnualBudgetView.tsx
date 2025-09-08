@@ -10,10 +10,11 @@ import * as Icons from 'lucide-react';
 interface AnnualBudgetViewProps {
   selectedMembers: string[];
   onEditBudget: (categoryId: string, memberId: string, month: number, existingBudget?: any) => void;
+  onDeleteBudget?: (budgetId: string, categoryName: string, memberName: string) => void;
 }
 
-export const AnnualBudgetView = ({ selectedMembers, onEditBudget }: AnnualBudgetViewProps) => {
-  const { budgets, categories, members } = useBudgetSupabase();
+export const AnnualBudgetView = ({ selectedMembers, onEditBudget, onDeleteBudget }: AnnualBudgetViewProps) => {
+  const { budgets, categories, members, currentMember } = useBudgetSupabase();
   const { period } = usePeriod();
 
   // Filtrar presupuestos por año actual

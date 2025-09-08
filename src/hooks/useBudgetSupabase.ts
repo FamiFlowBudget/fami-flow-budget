@@ -399,6 +399,64 @@ export const useBudgetSupabase = () => {
     return null;
   }, [user, toast]);
 
+  // Eliminar gasto (solo admin)
+  const deleteExpense = useCallback(async (expenseId: string) => {
+    if (!user || currentMember?.role !== 'admin') {
+      throw new Error('Unauthorized');
+    }
+
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', expenseId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setExpenses(prev => prev.filter(exp => exp.id !== expenseId));
+      
+      return true;
+    } catch (error) {
+      console.error('Error eliminando gasto:', error);
+      throw error;
+    }
+  }, [user, currentMember]);
+
+  // Eliminar presupuesto (solo admin)
+  const deleteBudget = useCallback(async (budgetId: string) => {
+    if (!user || currentMember?.role !== 'admin') {
+      throw new Error('Unauthorized');
+    }
+
+    try {
+      const { error } = await supabase
+        .from('budgets')
+        .delete()
+        .eq('id', budgetId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setBudgets(prev => prev.filter(budget => budget.id !== budgetId));
+      
+      toast({
+        title: "Presupuesto eliminado",
+        description: "El presupuesto se ha eliminado correctamente",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error eliminando presupuesto:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el presupuesto",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  }, [user, currentMember, toast]);
+
   // Agregar nueva categoría
   const addCategory = useCallback(async (category: Omit<Category, 'id'>) => {
     if (!user) return null;
@@ -913,11 +971,13 @@ export const useBudgetSupabase = () => {
     // Actions
     addExpense,
     updateExpense,
+    deleteExpense,
     addCategory,
     updateCategory,
     deleteCategory,
     cleanDuplicateCategories,
     upsertBudget,
+    deleteBudget,
     loadData,
     updateMemberProfile,
     updateAnyMemberProfile,

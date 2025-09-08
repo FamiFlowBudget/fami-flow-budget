@@ -13,9 +13,10 @@ import { BudgetFilters } from './BudgetFilters';
 import { MonthlyBudgetView } from './MonthlyBudgetView';
 import { AnnualBudgetView } from './AnnualBudgetView';
 import * as Icons from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export const FamilyBudgetView = () => {
-  const { categories, members, upsertBudget, loading } = useBudgetSupabase();
+  const { categories, members, currentMember, upsertBudget, deleteBudget, loading } = useBudgetSupabase();
   const { period } = usePeriod();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
@@ -28,6 +29,16 @@ export const FamilyBudgetView = () => {
     month: period.month,
     amount: 0
   });
+
+  const handleDeleteBudget = async (budgetId: string, categoryName: string, memberName: string) => {
+    if (currentMember?.role !== 'admin') return;
+    
+    try {
+      await deleteBudget(budgetId);
+    } catch (error) {
+      console.error('Error deleting budget:', error);
+    }
+  };
 
   // Manejar filtros
   const handleMemberToggle = (memberId: string) => {
@@ -184,25 +195,25 @@ export const FamilyBudgetView = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="member">Miembro *</Label>
-                    <Select 
-                      value={formData.memberId} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, memberId: value }))}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar miembro" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {members.map(member => (
-                          <SelectItem key={member.id} value={member.id}>
-                            <div className="flex items-center gap-2">
-                              <User className="w-4 h-4" />
-                              {member.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+            <Select 
+              value={formData.memberId} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, memberId: value }))}
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar miembro" />
+              </SelectTrigger>
+              <SelectContent>
+                {members.map(member => (
+                  <SelectItem key={member.id} value={member.id}>
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      {member.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
                   </div>
 
                   <div className="space-y-2">
@@ -256,6 +267,7 @@ export const FamilyBudgetView = () => {
             <MonthlyBudgetView 
               selectedMembers={selectedMembers}
               onEditBudget={openEditDialog}
+              onDeleteBudget={handleDeleteBudget}
             />
           </TabsContent>
 
@@ -263,6 +275,7 @@ export const FamilyBudgetView = () => {
             <AnnualBudgetView 
               selectedMembers={selectedMembers}
               onEditBudget={openEditDialog}
+              onDeleteBudget={handleDeleteBudget}
             />
           </TabsContent>
         </Tabs>

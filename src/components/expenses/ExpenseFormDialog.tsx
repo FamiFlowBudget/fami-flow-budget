@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { PaymentMethod } from '@/types/budget';
-import { Calculator, Calendar, CreditCard, Tag } from 'lucide-react';
+import { Calculator, Calendar, CreditCard, Tag, User } from 'lucide-react';
 
 interface ExpenseFormData {
   amount: number;
@@ -18,6 +18,7 @@ interface ExpenseFormData {
   merchant?: string;
   paymentMethod: PaymentMethod;
   date: string;
+  memberId?: string; // For admin to select member
 }
 
 interface ExpenseFormDialogProps {
@@ -31,6 +32,7 @@ interface ExpenseFormDialogProps {
     merchant?: string;
     paymentMethod: PaymentMethod;
     date: string;
+    memberId?: string;
   };
 }
 
@@ -43,10 +45,11 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
       categoryId: expenseToEdit?.categoryId || '',
       description: expenseToEdit?.description || '',
       merchant: expenseToEdit?.merchant || '',
+      memberId: expenseToEdit?.memberId || '',
     }
   });
   
-  const { addExpense, updateExpense, categories, currentMember, currency } = useBudgetSupabase();
+  const { addExpense, updateExpense, categories, currentMember, members, currency } = useBudgetSupabase();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,6 +62,9 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
       });
       return;
     }
+
+    // Determinar el miembro: si es admin y seleccionó uno, usar ese; sino, usar el currentMember
+    const targetMemberId = (currentMember.role === 'admin' && data.memberId) ? data.memberId : currentMember.id;
 
     setIsSubmitting(true);
     try {
@@ -78,7 +84,7 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
         });
       } else {
         await addExpense({
-          memberId: currentMember.id,
+          memberId: targetMemberId,
           categoryId: data.categoryId,
           amount: data.amount,
           currency,
@@ -148,6 +154,28 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
               <span className="text-sm text-destructive">{errors.amount.message}</span>
             )}
           </div>
+
+          {/* Miembro (solo para admin) */}
+          {currentMember?.role === 'admin' && (
+            <div className="space-y-2">
+              <Label className="flex items-center space-x-2">
+                <User className="h-4 w-4" />
+                <span>Miembro *</span>
+              </Label>
+              <Select onValueChange={(value) => setValue('memberId', value)} defaultValue={expenseToEdit?.memberId || currentMember.id}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un miembro" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Categoría */}
           <div className="space-y-2">

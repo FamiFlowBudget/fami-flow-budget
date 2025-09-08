@@ -3,17 +3,45 @@ import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { formatCurrency } from '@/types/budget';
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Receipt, User, Edit2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Receipt, User, Edit2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import * as Icons from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ExpenseFormDialog } from './ExpenseFormDialog';
 import { NewExpenseButton } from '@/components/NewExpenseButton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 export const ExpenseManagement = () => {
-  const { expenses, categories, members, loading } = useBudgetSupabase();
+  const { expenses, categories, members, currentMember, loading, deleteExpense } = useBudgetSupabase();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [editingExpense, setEditingExpense] = useState<any>(null);
+  const { toast } = useToast();
+
+  const handleDeleteExpense = async (expenseId: string, description: string) => {
+    if (currentMember?.role !== 'admin') {
+      toast({
+        title: "No autorizado",
+        description: "Solo los administradores pueden eliminar gastos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await deleteExpense(expenseId);
+      toast({
+        title: "Gasto eliminado",
+        description: `Se eliminó el gasto: ${description}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el gasto",
+        variant: "destructive",
+      });
+    }
+  };
 
   const organizedExpenses = categories.map(category => {
     const categoryExpenses = expenses.filter(e => e.categoryId === category.id);
@@ -145,22 +173,55 @@ export const ExpenseManagement = () => {
                                   <span className="font-medium">
                                     {formatCurrency(expense.amount)}
                                   </span>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => setEditingExpense({
-                                      id: expense.id,
-                                      amount: expense.amount,
-                                      categoryId: expense.categoryId,
-                                      description: expense.description,
-                                      merchant: expense.merchant,
-                                      paymentMethod: expense.paymentMethod,
-                                      date: expense.date
-                                    })}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto"
-                                  >
-                                    <Edit2 className="h-3 w-3" />
-                                  </Button>
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => setEditingExpense({
+                                        id: expense.id,
+                                        amount: expense.amount,
+                                        categoryId: expense.categoryId,
+                                        description: expense.description,
+                                        merchant: expense.merchant,
+                                        paymentMethod: expense.paymentMethod,
+                                        date: expense.date,
+                                        memberId: expense.memberId
+                                      })}
+                                      className="p-1 h-auto"
+                                    >
+                                      <Edit2 className="h-3 w-3" />
+                                    </Button>
+                                    {currentMember?.role === 'admin' && (
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="p-1 h-auto text-destructive hover:text-destructive"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>¿Eliminar gasto?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Esta acción no se puede deshacer. Se eliminará permanentemente el gasto "{expense.description}".
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                              onClick={() => handleDeleteExpense(expense.id, expense.description)}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              Eliminar
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             ))}
