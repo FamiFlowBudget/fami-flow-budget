@@ -56,7 +56,7 @@ const colorOptions = [
 ];
 
 export const CategoryManagement = () => {
-  const { categories, addCategory, updateCategory, deleteCategory, loading } = useBudgetSupabase();
+  const { categories, addCategory, updateCategory, deleteCategory, cleanDuplicateCategories, loading } = useBudgetSupabase();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
@@ -185,17 +185,26 @@ export const CategoryManagement = () => {
             Organiza tus gastos con categorías personalizadas
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Categoría
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={cleanDuplicateCategories}
+            className="bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Limpiar Duplicados
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nueva Categoría
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
                 {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
@@ -277,7 +286,8 @@ export const CategoryManagement = () => {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
+         </Dialog>
+        </div>
       </div>
 
       <Card>

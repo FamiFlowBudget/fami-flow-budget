@@ -347,15 +347,34 @@ export const useBudgetSupabase = () => {
 
     try {
       // Verificar si hay gastos asociados a esta categoría
-      const { count } = await supabase
+      const { count: expenseCount } = await supabase
         .from('expenses')
         .select('*', { count: 'exact', head: true })
         .eq('category_id', categoryId)
         .eq('user_id', user.id);
 
-      // Si hay gastos asociados, no permitir eliminar
-      if (count && count > 0) {
-        throw new Error('No se puede eliminar la categoría porque tiene gastos asociados');
+      // Verificar si hay presupuestos asociados a esta categoría
+      const { count: budgetCount } = await supabase
+        .from('budgets')
+        .select('*', { count: 'exact', head: true })
+        .eq('category_id', categoryId)
+        .eq('user_id', user.id);
+
+      // Si hay gastos o presupuestos asociados, no permitir eliminar
+      if ((expenseCount && expenseCount > 0) || (budgetCount && budgetCount > 0)) {
+        const hasExpenses = expenseCount && expenseCount > 0;
+        const hasBudgets = budgetCount && budgetCount > 0;
+        
+        let message = 'No se puede eliminar la categoría porque tiene ';
+        if (hasExpenses && hasBudgets) {
+          message += `${expenseCount} gastos y ${budgetCount} presupuestos asociados`;
+        } else if (hasExpenses) {
+          message += `${expenseCount} gastos asociados`;
+        } else {
+          message += `${budgetCount} presupuestos asociados`;
+        }
+        
+        throw new Error(message);
       }
 
       const { error } = await supabase
@@ -374,6 +393,98 @@ export const useBudgetSupabase = () => {
       throw error; // Re-throw para que el componente maneje el error
     }
   }, [user]);
+
+  // Función para limpiar categorías duplicadas
+  const cleanDuplicateCategories = useCallback(async () => {
+    if (!user) return false;
+
+    try {
+      // Obtener categorías duplicadas manualmente
+      const { data: allCategories } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at');
+
+      if (!allCategories) return false;
+
+      // Agrupar por nombre para encontrar duplicados
+      const categoryGroups = allCategories.reduce((groups, cat) => {
+        if (!groups[cat.name]) {
+          groups[cat.name] = [];
+        }
+        groups[cat.name].push(cat);
+        return groups;
+      }, {} as Record<string, typeof allCategories>);
+
+      // Encontrar duplicados (grupos con más de 1 categoría)
+      const duplicatesInfo: Array<{original_id: string, duplicate_id: string, name: string}> = [];
+      
+      Object.entries(categoryGroups).forEach(([name, cats]) => {
+        if (cats.length > 1) {
+          // La primera (más antigua) es la original, las demás son duplicados
+          const original = cats[0];
+          cats.slice(1).forEach(duplicate => {
+            duplicatesInfo.push({
+              original_id: original.id,
+              duplicate_id: duplicate.id,
+              name: name
+            });
+          });
+        }
+      });
+
+      if (duplicatesInfo.length === 0) {
+        toast({
+          title: "Sin duplicados",
+          description: "No se encontraron categorías duplicadas",
+        });
+        return true;
+      }
+
+      // Mover referencias de duplicados a originales
+      for (const dup of duplicatesInfo) {
+        // Actualizar gastos
+        await supabase
+          .from('expenses')
+          .update({ category_id: dup.original_id })
+          .eq('category_id', dup.duplicate_id)
+          .eq('user_id', user.id);
+
+        // Actualizar presupuestos
+        await supabase
+          .from('budgets')
+          .update({ category_id: dup.original_id })
+          .eq('category_id', dup.duplicate_id)
+          .eq('user_id', user.id);
+
+        // Eliminar categoría duplicada
+        await supabase
+          .from('categories')
+          .delete()
+          .eq('id', dup.duplicate_id)
+          .eq('user_id', user.id);
+      }
+
+      // Recargar categorías
+      await loadData();
+
+      toast({
+        title: "Duplicados eliminados",
+        description: `Se eliminaron ${duplicatesInfo.length} categorías duplicadas`,
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error limpiando duplicados:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron eliminar los duplicados",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [user, toast, loadData]);
 
   // Agregar/actualizar presupuesto
   const upsertBudget = useCallback(async (budget: Omit<Budget, 'id'>) => {
@@ -646,6 +757,7 @@ export const useBudgetSupabase = () => {
     addCategory,
     updateCategory,
     deleteCategory,
+    cleanDuplicateCategories,
     upsertBudget,
     loadData,
     updateMemberProfile,
