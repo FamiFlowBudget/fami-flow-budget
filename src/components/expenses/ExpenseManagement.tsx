@@ -3,13 +3,17 @@ import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { formatCurrency } from '@/types/budget';
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Receipt, User } from 'lucide-react';
+import { ChevronDown, ChevronRight, Receipt, User, Edit2 } from 'lucide-react';
 import { useState } from 'react';
 import * as Icons from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { ExpenseFormDialog } from './ExpenseFormDialog';
+import { NewExpenseButton } from '@/components/NewExpenseButton';
 
 export const ExpenseManagement = () => {
   const { expenses, categories, members, loading } = useBudgetSupabase();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [editingExpense, setEditingExpense] = useState<any>(null);
 
   const organizedExpenses = categories.map(category => {
     const categoryExpenses = expenses.filter(e => e.categoryId === category.id);
@@ -56,11 +60,14 @@ export const ExpenseManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Gestión de Gastos</h1>
-        <p className="text-muted-foreground mt-2">
-          Gastos organizados por categoría con desglose familiar
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Gestión de Gastos</h1>
+          <p className="text-muted-foreground mt-2">
+            Gastos organizados por categoría con desglose familiar
+          </p>
+        </div>
+        <NewExpenseButton />
       </div>
 
       {organizedExpenses.length === 0 ? (
@@ -127,16 +134,34 @@ export const ExpenseManagement = () => {
                           
                           <div className="space-y-2">
                             {memberData.expenses.slice(0, 5).map((expense) => (
-                              <div key={expense.id} className="flex items-center justify-between text-sm">
-                                <div>
+                              <div key={expense.id} className="flex items-center justify-between text-sm group">
+                                <div className="flex-1">
                                   <p className="font-medium">{expense.description}</p>
                                   <p className="text-muted-foreground">
                                     {expense.merchant} • {new Date(expense.date).toLocaleDateString('es-CL')}
                                   </p>
                                 </div>
-                                <span className="font-medium">
-                                  {formatCurrency(expense.amount)}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">
+                                    {formatCurrency(expense.amount)}
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setEditingExpense({
+                                      id: expense.id,
+                                      amount: expense.amount,
+                                      categoryId: expense.categoryId,
+                                      description: expense.description,
+                                      merchant: expense.merchant,
+                                      paymentMethod: expense.paymentMethod,
+                                      date: expense.date
+                                    })}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto"
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
                               </div>
                             ))}
                             {memberData.expenses.length > 5 && (
@@ -154,6 +179,14 @@ export const ExpenseManagement = () => {
             </Collapsible>
           ))}
         </div>
+      )}
+
+      {editingExpense && (
+        <ExpenseFormDialog
+          isOpen={!!editingExpense}
+          onClose={() => setEditingExpense(null)}
+          expenseToEdit={editingExpense}
+        />
       )}
     </div>
   );

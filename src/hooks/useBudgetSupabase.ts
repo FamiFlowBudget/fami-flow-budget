@@ -334,6 +334,71 @@ export const useBudgetSupabase = () => {
     return null;
   }, [user, toast]);
 
+  // Actualizar gasto existente
+  const updateExpense = useCallback(async (expenseId: string, updates: {
+    categoryId: string;
+    amount: number;
+    description: string;
+    merchant?: string;
+    paymentMethod: string;
+    date: string;
+  }) => {
+    if (!user) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .update({
+          category_id: updates.categoryId,
+          amount: updates.amount,
+          description: updates.description,
+          merchant: updates.merchant,
+          payment_method: updates.paymentMethod,
+          expense_date: updates.date,
+        })
+        .eq('id', expenseId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const updatedExpense: Expense = {
+          id: data.id,
+          memberId: data.member_id,
+          categoryId: data.category_id,
+          amount: data.amount,
+          currency: data.currency as Currency,
+          description: data.description,
+          merchant: data.merchant,
+          paymentMethod: data.payment_method as 'cash' | 'debit' | 'credit' | 'transfer' | 'other',
+          tags: data.tags,
+          date: data.expense_date,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        };
+        
+        setExpenses(prev => prev.map(exp => exp.id === expenseId ? updatedExpense : exp));
+        
+        toast({
+          title: "Gasto actualizado",
+          description: "El gasto se ha actualizado correctamente",
+        });
+        
+        return updatedExpense;
+      }
+    } catch (error) {
+      console.error('Error actualizando gasto:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el gasto",
+        variant: "destructive",
+      });
+    }
+    return null;
+  }, [user, toast]);
+
   // Agregar nueva categoría
   const addCategory = useCallback(async (category: Omit<Category, 'id'>) => {
     if (!user) return null;
@@ -847,6 +912,7 @@ export const useBudgetSupabase = () => {
     
     // Actions
     addExpense,
+    updateExpense,
     addCategory,
     updateCategory,
     deleteCategory,
