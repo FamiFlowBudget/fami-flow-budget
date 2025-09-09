@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Bell, PieChart, Wifi, WifiOff } from 'lucide-react';
+import { Search, Bell, Wifi, WifiOff } from 'lucide-react';
 import { AppDrawer } from './AppDrawer';
 import { GlobalSearch } from './GlobalSearch';
 import { PeriodSelector } from '../PeriodSelector';
@@ -65,11 +65,12 @@ export const AppHeader = () => {
       >
         <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center space-x-2">
-              <PieChart className="h-6 w-6 text-primary" />
-              <div className="flex flex-col">
-                <span className="font-bold text-lg">FamiFlow</span>
-                <span className="text-xs text-muted-foreground -mt-1">Budget Tracker</span>
-              </div>
+              <img 
+                src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" 
+                alt="FamiFlow Logo" 
+                className="h-8 w-auto"
+              />
+              <span className="text-xs text-muted-foreground">Budget Tracker</span>
             </Link>
           
           <div className="flex items-center space-x-4">
@@ -103,12 +104,12 @@ export const AppHeader = () => {
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
               aria-label="Ir al inicio"
             >
-              <PieChart className="h-6 w-6 text-primary" />
-              <div className="flex flex-col">
-                <span className="font-bold text-lg hidden sm:block">FamiFlow</span>
-                <span className="text-xs text-muted-foreground -mt-1 hidden sm:block">Budget Tracker</span>
-              </div>
-              <span className="font-bold text-base sm:hidden">FF</span>
+              <img 
+                src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" 
+                alt="FamiFlow Logo" 
+                className="h-7 w-auto sm:h-8"
+              />
+              <span className="text-xs text-muted-foreground hidden sm:block">Budget Tracker</span>
             </Link>
           </div>
 
