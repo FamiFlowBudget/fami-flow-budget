@@ -63,10 +63,12 @@ export const AppHeader = () => {
     return <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" style={{
       paddingTop: 'env(safe-area-inset-top)'
     }}>
-        <div className="container flex h-16 items-center justify-between px-4">
-            <Link to="/" className="flex items-center space-x-2">
-              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-8 w-auto" />
-              <span className="text-xs text-muted-foreground">Budget Tracker</span>
+        <div className="container flex h-20 items-center justify-between px-4 max-w-7xl mx-auto">
+            <Link to="/" className="flex items-center space-x-3">
+              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-12 w-12 object-contain flex-shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-xs text-muted-foreground leading-tight">Budget Tracker</span>
+              </div>
             </Link>
           
           <div className="flex items-center space-x-4">
@@ -85,14 +87,16 @@ export const AppHeader = () => {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm" style={{
       paddingTop: 'env(safe-area-inset-top)'
     }} role="banner">
-        <div className="container flex h-16 items-center justify-between px-4">
+        <div className="container flex h-20 items-center justify-between px-4 max-w-7xl mx-auto">
           {/* Left: Brand + Mobile Menu */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             <AppDrawer />
             
-            <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity" aria-label="Ir al inicio">
-              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-24 w-auto sm:h-16" />
-              <span className="text-xs text-muted-foreground hidden sm:block">Budget Tracker</span>
+            <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity" aria-label="Ir al inicio">
+              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-12 w-12 object-contain flex-shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-xs text-muted-foreground hidden sm:block leading-tight">Budget Tracker</span>
+              </div>
             </Link>
           </div>
 
