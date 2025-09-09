@@ -91,7 +91,7 @@ export const AppHeader = () => {
             <AppDrawer />
             
             <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity" aria-label="Ir al inicio">
-              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-16w-auto sm:h-8 " />
+              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-20 w-auto sm:h-12" />
               <span className="text-xs text-muted-foreground hidden sm:block">Budget Tracker</span>
             </Link>
           </div>
