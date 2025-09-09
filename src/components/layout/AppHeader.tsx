@@ -82,14 +82,16 @@ export const AppHeader = () => {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm" style={{
       paddingTop: 'env(safe-area-inset-top)'
     }} role="banner">
-        <div className="container max-w-7xl flex h-16 items-center justify-between px-4">
+        <div className="container max-w-7xl flex h-16 items-center justify-between px-4 gap-4">
           {/* Left: Brand + Mobile Menu */}
-          <div className="flex items-center space-x-3 min-w-0">
+          <div className="flex items-center space-x-3 min-w-0 flex-shrink-0">
             <AppDrawer />
             
             <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity min-w-0" aria-label="Ir al inicio">
-              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-16 w-16 object-contain flex-shrink-0" />
-              <span className="text-xs text-muted-foreground hidden sm:block whitespace-nowrap">Budget Tracker</span>
+              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-10 w-10 object-contain flex-shrink-0" />
+              <div className="hidden sm:flex flex-col min-w-0">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Budget Tracker</span>
+              </div>
             </Link>
           </div>
 
@@ -109,7 +111,7 @@ export const AppHeader = () => {
           </nav>
 
           {/* Right: Search + Actions */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-shrink-0">
             {/* Global Search (Desktop) */}
             {/* Search removed per user request */}
 
