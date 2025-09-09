@@ -15,61 +15,57 @@ import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { useAuth } from '@/hooks/useAuth';
 import { usePeriod } from '@/providers/PeriodProvider';
 import { useAlerts } from '@/hooks/useAlerts';
-
 export const AppHeader = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const { user } = useAuth();
-  const { currentMember, getDashboardKPIs } = useBudgetSupabase();
-  const { getPeriodLabel } = usePeriod();
-  const { alertCount } = useAlerts();
+  const {
+    user
+  } = useAuth();
+  const {
+    currentMember,
+    getDashboardKPIs
+  } = useBudgetSupabase();
+  const {
+    getPeriodLabel
+  } = usePeriod();
+  const {
+    alertCount
+  } = useAlerts();
   const location = useLocation();
   const navigate = useNavigate();
-  
   const navItems = getVisibleNavItems(currentMember?.role || null);
   const kpis = getDashboardKPIs();
-  
+
   // Online/offline detection
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
   const isActive = (href: string) => {
     if (href === '/') {
       return location.pathname === '/';
     }
     return location.pathname.startsWith(href);
   };
-
   const getBudgetUsageColor = (percentage: number) => {
     if (percentage >= 90) return 'destructive';
     if (percentage >= 75) return 'secondary';
     return 'default';
   };
-
   if (!user) {
     // Header para usuarios no autenticados
-    return (
-      <header 
-        className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
-      >
+    return <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" style={{
+      paddingTop: 'env(safe-area-inset-top)'
+    }}>
         <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center space-x-2">
-              <img 
-                src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" 
-                alt="FamiFlow Logo" 
-                className="h-8 w-auto"
-              />
+              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-8 w-auto" />
               <span className="text-xs text-muted-foreground">Budget Tracker</span>
             </Link>
           
@@ -83,77 +79,43 @@ export const AppHeader = () => {
             </Button>
           </div>
         </div>
-      </header>
-    );
+      </header>;
   }
-
-  return (
-    <>
-      <header 
-        className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
-        role="banner"
-      >
+  return <>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm" style={{
+      paddingTop: 'env(safe-area-inset-top)'
+    }} role="banner">
         <div className="container flex h-16 items-center justify-between px-4">
           {/* Left: Brand + Mobile Menu */}
           <div className="flex items-center space-x-4">
             <AppDrawer />
             
-            <Link 
-              to="/" 
-              className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
-              aria-label="Ir al inicio"
-            >
-              <img 
-                src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" 
-                alt="FamiFlow Logo" 
-                className="h-7 w-auto sm:h-8"
-              />
+            <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity" aria-label="Ir al inicio">
+              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-16 w-auto sm:h-8 " />
               <span className="text-xs text-muted-foreground hidden sm:block">Budget Tracker</span>
             </Link>
           </div>
 
           {/* Center: Navigation (Desktop) */}
           <nav className="hidden lg:flex items-center space-x-1" role="navigation" aria-label="Navegación principal">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive(item.href)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                  }`}
-                  aria-current={isActive(item.href) ? 'page' : undefined}
-                >
+            {navItems.map(item => {
+            const Icon = item.icon;
+            return <Link key={item.href} to={item.href} className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(item.href) ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`} aria-current={isActive(item.href) ? 'page' : undefined}>
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
                   {/* Budget usage indicator for Presupuestos */}
-                  {item.href === '/budget' && kpis.totalBudget > 0 && (
-                    <Badge 
-                      variant={getBudgetUsageColor(kpis.percentage)}
-                      className="ml-1 text-xs px-1.5 py-0.5"
-                    >
+                  {item.href === '/budget' && kpis.totalBudget > 0 && <Badge variant={getBudgetUsageColor(kpis.percentage)} className="ml-1 text-xs px-1.5 py-0.5">
                       {Math.round(kpis.percentage)}%
-                    </Badge>
-                  )}
-                </Link>
-              );
-            })}
+                    </Badge>}
+                </Link>;
+          })}
           </nav>
 
           {/* Right: Search + Actions */}
           <div className="flex items-center space-x-2">
             {/* Global Search (Desktop) */}
             <div className="hidden md:block">
-              <Button
-                variant="outline"
-                onClick={() => setSearchOpen(true)}
-                className="h-9 px-3 text-sm text-muted-foreground justify-start"
-                aria-label="Buscar (Ctrl + K)"
-              >
+              <Button variant="outline" onClick={() => setSearchOpen(true)} className="h-9 px-3 text-sm text-muted-foreground justify-start" aria-label="Buscar (Ctrl + K)">
                 <Search className="w-4 h-4 mr-2" />
                 <span className="hidden lg:inline">Buscar...</span>
                 <kbd className="hidden lg:inline pointer-events-none ml-auto h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
@@ -163,13 +125,7 @@ export const AppHeader = () => {
             </div>
 
             {/* Mobile Search */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSearchOpen(true)}
-              className="h-9 w-9 p-0 md:hidden"
-              aria-label="Buscar"
-            >
+            <Button variant="ghost" size="sm" onClick={() => setSearchOpen(true)} className="h-9 w-9 p-0 md:hidden" aria-label="Buscar">
               <Search className="w-4 h-4" />
             </Button>
 
@@ -182,27 +138,16 @@ export const AppHeader = () => {
             <NewExpenseButton />
 
             {/* Notifications */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-9 w-9 p-0 relative"
-              onClick={() => navigate('/alerts')}
-            >
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 relative" onClick={() => navigate('/alerts')}>
               <Bell className="w-4 h-4" />
-              {alertCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 text-xs p-0 flex items-center justify-center">
+              {alertCount > 0 && <Badge className="absolute -top-1 -right-1 h-5 w-5 text-xs p-0 flex items-center justify-center">
                   {alertCount}
-                </Badge>
-              )}
+                </Badge>}
             </Button>
 
             {/* Connection Status */}
             <div className="hidden lg:flex items-center" title={isOnline ? "En línea" : "Sin conexión"}>
-              {isOnline ? (
-                <Wifi className="w-4 h-4 text-green-500" />
-              ) : (
-                <WifiOff className="w-4 h-4 text-red-500" />
-              )}
+              {isOnline ? <Wifi className="w-4 h-4 text-green-500" /> : <WifiOff className="w-4 h-4 text-red-500" />}
             </div>
 
             {/* Theme Toggle (Desktop) */}
@@ -226,6 +171,5 @@ export const AppHeader = () => {
 
       {/* Global Search Modal */}
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
-    </>
-  );
+    </>;
 };
