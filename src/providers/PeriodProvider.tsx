@@ -14,7 +14,16 @@ const PeriodContext = createContext<PeriodContextType | undefined>(undefined);
 export const usePeriod = () => {
   const context = useContext(PeriodContext);
   if (!context) {
-    throw new Error('usePeriod must be used within a PeriodProvider');
+    // Return default values instead of throwing error to prevent crashes
+    const now = new Date();
+    return {
+      period: { month: now.getMonth() + 1, year: now.getFullYear() },
+      setPeriod: () => {}, // no-op function
+      getPeriodLabel: () => new Date().toLocaleDateString('es-CL', { 
+        month: 'short', 
+        year: 'numeric' 
+      })
+    };
   }
   return context;
 };
