@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Bell, Wifi, WifiOff } from 'lucide-react';
+import { Bell, Wifi, WifiOff } from 'lucide-react';
 import { AppDrawer } from './AppDrawer';
-import { GlobalSearch } from './GlobalSearch';
 import { PeriodSelector } from '../PeriodSelector';
 import { ThemeToggle } from '../ThemeToggle';
 import { UserMenu } from '../UserMenu';
@@ -16,7 +14,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePeriod } from '@/providers/PeriodProvider';
 import { useAlerts } from '@/hooks/useAlerts';
 export const AppHeader = () => {
-  const [searchOpen, setSearchOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const {
     user
@@ -114,20 +111,10 @@ export const AppHeader = () => {
           {/* Right: Search + Actions */}
           <div className="flex items-center space-x-2">
             {/* Global Search (Desktop) */}
-            <div className="hidden md:block">
-              <Button variant="outline" onClick={() => setSearchOpen(true)} aria-label="Buscar (Ctrl + K)" className="h-6 px-1 text-sm text-muted-foreground justify-start">
-                <Search className="w-4 h-4 mr-2" />
-                <span className="hidden lg:inline">Buscar...</span>
-                <kbd className="hidden lg:inline pointer-events-none ml-auto h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
-                  <span className="text-xs">⌘</span>K
-                </kbd>
-              </Button>
-            </div>
+            {/* Search removed per user request */}
 
             {/* Mobile Search */}
-            <Button variant="ghost" size="sm" onClick={() => setSearchOpen(true)} className="h-9 w-9 p-0 md:hidden" aria-label="Buscar">
-              <Search className="w-4 h-4" />
-            </Button>
+            {/* Search removed per user request */}
 
             {/* Period Selector */}
             <div className="hidden sm:block">
@@ -168,8 +155,5 @@ export const AppHeader = () => {
           </div>
         </div>
       </header>
-
-      {/* Global Search Modal */}
-      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </>;
 };

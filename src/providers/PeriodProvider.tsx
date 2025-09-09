@@ -44,7 +44,7 @@ export const PeriodProvider = ({ children }: { children: React.ReactNode }) => {
   const getPeriodLabel = () => {
     const date = new Date(period.year, period.month - 1);
     return date.toLocaleDateString('es-CL', { 
-      month: 'long', 
+      month: 'short', 
       year: 'numeric' 
     });
   };

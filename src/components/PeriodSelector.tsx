@@ -20,7 +20,7 @@ export const PeriodSelector = () => {
   }, (_, i) => ({
     value: i + 1,
     label: new Date(2024, i).toLocaleDateString('es-CL', {
-      month: 'long'
+      month: 'short'
     })
   }));
   const handlePeriodChange = (type: 'month' | 'year', value: string) => {
