@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Bell, DollarSign, Wifi, WifiOff } from 'lucide-react';
+import { Search, Bell, PieChart, Wifi, WifiOff } from 'lucide-react';
 import { AppDrawer } from './AppDrawer';
 import { GlobalSearch } from './GlobalSearch';
 import { PeriodSelector } from '../PeriodSelector';
@@ -65,7 +65,7 @@ export const AppHeader = () => {
       >
         <div className="container flex h-16 items-center justify-between px-4">
             <Link to="/" className="flex items-center space-x-2">
-              <DollarSign className="h-6 w-6 text-primary" />
+              <PieChart className="h-6 w-6 text-primary" />
               <div className="flex flex-col">
                 <span className="font-bold text-lg">FamiFlow</span>
                 <span className="text-xs text-muted-foreground -mt-1">Budget Tracker</span>
@@ -103,7 +103,7 @@ export const AppHeader = () => {
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
               aria-label="Ir al inicio"
             >
-              <DollarSign className="h-6 w-6 text-primary" />
+              <PieChart className="h-6 w-6 text-primary" />
               <div className="flex flex-col">
                 <span className="font-bold text-lg hidden sm:block">FamiFlow</span>
                 <span className="text-xs text-muted-foreground -mt-1 hidden sm:block">Budget Tracker</span>
