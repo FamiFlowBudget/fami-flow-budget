@@ -115,7 +115,7 @@ export const AppHeader = () => {
           <div className="flex items-center space-x-2">
             {/* Global Search (Desktop) */}
             <div className="hidden md:block">
-              <Button variant="outline" onClick={() => setSearchOpen(true)} className="h-9 px-3 text-sm text-muted-foreground justify-start" aria-label="Buscar (Ctrl + K)">
+              <Button variant="outline" onClick={() => setSearchOpen(true)} aria-label="Buscar (Ctrl + K)" className="h-6 px-1 text-sm text-muted-foreground justify-start">
                 <Search className="w-4 h-4 mr-2" />
                 <span className="hidden lg:inline">Buscar...</span>
                 <kbd className="hidden lg:inline pointer-events-none ml-auto h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
