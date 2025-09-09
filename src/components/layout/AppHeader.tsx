@@ -64,10 +64,13 @@ export const AppHeader = () => {
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <div className="container flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center space-x-2">
-            <DollarSign className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg">Family Budget Tracker</span>
-          </Link>
+            <Link to="/" className="flex items-center space-x-2">
+              <DollarSign className="h-6 w-6 text-primary" />
+              <div className="flex flex-col">
+                <span className="font-bold text-lg">FamiFlow</span>
+                <span className="text-xs text-muted-foreground -mt-1">Budget Tracker</span>
+              </div>
+            </Link>
           
           <div className="flex items-center space-x-4">
             <ThemeToggle />
@@ -101,8 +104,11 @@ export const AppHeader = () => {
               aria-label="Ir al inicio"
             >
               <DollarSign className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg hidden sm:block">Family Budget Tracker</span>
-              <span className="font-bold text-base sm:hidden">FBT</span>
+              <div className="flex flex-col">
+                <span className="font-bold text-lg hidden sm:block">FamiFlow</span>
+                <span className="text-xs text-muted-foreground -mt-1 hidden sm:block">Budget Tracker</span>
+              </div>
+              <span className="font-bold text-base sm:hidden">FF</span>
             </Link>
           </div>
 
