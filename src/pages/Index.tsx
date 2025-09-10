@@ -1,5 +1,4 @@
 import { AddExpenseFAB } from "@/components/expenses/AddExpenseFAB";
-import { DemoDataGenerator } from "@/components/demo/DemoDataGenerator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KpiCards } from '@/components/dashboards/KpiCards';
@@ -79,7 +78,6 @@ const Index = () => {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Accesos Rápidos</h2>
-            <DemoDataGenerator />
           </div>
           
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
