@@ -178,6 +178,42 @@ export type Database = {
           },
         ]
       }
+      families: {
+        Row: {
+          created_at: string
+          currency: string
+          family_public_id: string
+          id: string
+          invitation_policy: Json | null
+          join_pin_hash: string | null
+          name: string
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          family_public_id: string
+          id?: string
+          invitation_policy?: Json | null
+          join_pin_hash?: string | null
+          name: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          family_public_id?: string
+          id?: string
+          invitation_policy?: Json | null
+          join_pin_hash?: string | null
+          name?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       family_members: {
         Row: {
           active: boolean
@@ -219,6 +255,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_family_public_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      hash_join_pin: {
+        Args: { pin: string }
+        Returns: string
+      }
       setup_default_categories_for_user: {
         Args: { user_uuid: string }
         Returns: undefined
