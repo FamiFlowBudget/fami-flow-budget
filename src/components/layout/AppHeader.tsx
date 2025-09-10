@@ -8,7 +8,7 @@ import { PeriodSelector } from '../PeriodSelector';
 import { ThemeToggle } from '../ThemeToggle';
 import { UserMenu } from '../UserMenu';
 import { NewExpenseButton } from '../NewExpenseButton';
-import { FamilySelector } from '@/components/family/FamilySelector';
+
 import { getVisibleNavItems } from '@/lib/nav';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -128,10 +128,6 @@ export const AppHeader = () => {
               <PeriodSelector />
             </div>
 
-            {/* Family Selector */}
-            <div className="hidden sm:block">
-              <FamilySelector />
-            </div>
 
             {/* Add Expense */}
             <NewExpenseButton />

@@ -4,9 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Save } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { User, Save, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
+import { useFamilies } from '@/hooks/useFamilies';
+import { FamilySelector } from '@/components/family/FamilySelector';
 
 interface ProfileEditDialogProps {
   open: boolean;
@@ -15,6 +18,7 @@ interface ProfileEditDialogProps {
 
 export const ProfileEditDialog = ({ open, onOpenChange }: ProfileEditDialogProps) => {
   const { currentMember, updateMemberProfile } = useBudgetSupabase();
+  const { currentFamily, families } = useFamilies();
   const { toast } = useToast();
   const [name, setName] = useState(currentMember?.name || '');
   const [loading, setLoading] = useState(false);
@@ -104,6 +108,32 @@ export const ProfileEditDialog = ({ open, onOpenChange }: ProfileEditDialogProps
               disabled 
               className="opacity-50" 
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Familia
+            </Label>
+            {currentFamily ? (
+              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                <span className="font-medium">{currentFamily.name}</span>
+                <Badge variant="outline" className="text-xs">
+                  {currentFamily.family_public_id}
+                </Badge>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No hay familia asignada</p>
+            )}
+            
+            {families.length > 1 && (
+              <div className="mt-2">
+                <Label className="text-xs text-muted-foreground">Cambiar familia:</Label>
+                <div className="mt-1">
+                  <FamilySelector />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
