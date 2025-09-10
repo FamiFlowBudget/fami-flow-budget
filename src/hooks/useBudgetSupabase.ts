@@ -147,21 +147,27 @@ export const useBudgetSupabase = () => {
     setLoading(true);
     console.log('Loading data for user:', user.id);
     try {
-      // Cargar categorías
+      // Cargar categorías DEL USUARIO (filtrar correctamente por user_id)
       const { data: categoriesData } = await supabase
         .from('categories')
         .select('*')
+        .eq('user_id', user.id) // ¡CRÍTICO: Filtrar por usuario!
         .eq('active', true)
         .order('order_index');
 
       if (!categoriesData || categoriesData.length === 0) {
-        // Configurar categorías por defecto
+        // Configurar categorías por defecto SOLO si no existen
+        console.log('No categories found, creating defaults for user:', user.id);
         await supabase.rpc('setup_default_categories_for_user', { user_uuid: user.id });
+        
+        // Recargar las categorías recién creadas
         const { data: newCategories } = await supabase
           .from('categories')
           .select('*')
+          .eq('user_id', user.id) // Filtrar por usuario
           .eq('active', true)
           .order('order_index');
+          
         setCategories((newCategories || []).map(cat => ({
           id: cat.id,
           name: cat.name,
@@ -181,10 +187,11 @@ export const useBudgetSupabase = () => {
         })));
       }
 
-      // Cargar miembros de la familia
+      // Cargar miembros de la familia DEL USUARIO
       const { data: membersData } = await supabase
         .from('family_members')
         .select('*')
+        .eq('user_id', user.id) // Filtrar por usuario
         .eq('active', true);
 
       if (!membersData || membersData.length === 0) {
@@ -260,10 +267,11 @@ export const useBudgetSupabase = () => {
         }
       }
 
-      // Cargar presupuestos
+      // Cargar presupuestos DEL USUARIO
       const { data: budgetsData } = await supabase
         .from('budgets')
-        .select('*');
+        .select('*')
+        .eq('user_id', user.id); // Filtrar por usuario
       setBudgets((budgetsData || []).map(budget => ({
         id: budget.id,
         categoryId: budget.category_id,
@@ -274,10 +282,11 @@ export const useBudgetSupabase = () => {
         currency: budget.currency as Currency
       })));
 
-      // Cargar gastos
+      // Cargar gastos DEL USUARIO
       const { data: expensesData } = await supabase
         .from('expenses')
         .select('*')
+        .eq('user_id', user.id) // Filtrar por usuario
         .order('created_at', { ascending: false });
       setExpenses((expensesData || []).map(expense => ({
         id: expense.id,
