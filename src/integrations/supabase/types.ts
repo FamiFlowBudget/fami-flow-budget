@@ -20,6 +20,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           currency: string
+          family_id: string | null
           id: string
           member_id: string | null
           month: number | null
@@ -32,6 +33,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           currency?: string
+          family_id?: string | null
           id?: string
           member_id?: string | null
           month?: number | null
@@ -44,6 +46,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           currency?: string
+          family_id?: string | null
           id?: string
           member_id?: string | null
           month?: number | null
@@ -60,6 +63,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "budgets_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "budgets_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
@@ -73,6 +83,7 @@ export type Database = {
           active: boolean
           color: string
           created_at: string
+          family_id: string | null
           icon: string
           id: string
           name: string
@@ -85,6 +96,7 @@ export type Database = {
           active?: boolean
           color: string
           created_at?: string
+          family_id?: string | null
           icon: string
           id?: string
           name: string
@@ -97,6 +109,7 @@ export type Database = {
           active?: boolean
           color?: string
           created_at?: string
+          family_id?: string | null
           icon?: string
           id?: string
           name?: string
@@ -106,6 +119,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "categories_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "categories_parent_id_fkey"
             columns: ["parent_id"]
@@ -123,6 +143,7 @@ export type Database = {
           currency: string
           description: string
           expense_date: string
+          family_id: string | null
           id: string
           member_id: string
           merchant: string | null
@@ -138,6 +159,7 @@ export type Database = {
           currency?: string
           description: string
           expense_date: string
+          family_id?: string | null
           id?: string
           member_id: string
           merchant?: string | null
@@ -153,6 +175,7 @@ export type Database = {
           currency?: string
           description?: string
           expense_date?: string
+          family_id?: string | null
           id?: string
           member_id?: string
           merchant?: string | null
@@ -170,6 +193,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expenses_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expenses_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
@@ -178,15 +208,53 @@ export type Database = {
           },
         ]
       }
+      families: {
+        Row: {
+          created_at: string
+          currency: string
+          family_public_id: string
+          id: string
+          invitation_policy: Json | null
+          join_pin_hash: string | null
+          name: string
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          family_public_id: string
+          id?: string
+          invitation_policy?: Json | null
+          join_pin_hash?: string | null
+          name: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          family_public_id?: string
+          id?: string
+          invitation_policy?: Json | null
+          join_pin_hash?: string | null
+          name?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       family_members: {
         Row: {
           active: boolean
           created_at: string
           email: string | null
+          family_id: string | null
           id: string
           name: string
           photo_url: string | null
           role: string
+          status: string
           updated_at: string
           user_id: string
         }
@@ -194,10 +262,12 @@ export type Database = {
           active?: boolean
           created_at?: string
           email?: string | null
+          family_id?: string | null
           id?: string
           name: string
           photo_url?: string | null
           role: string
+          status?: string
           updated_at?: string
           user_id: string
         }
@@ -205,20 +275,161 @@ export type Database = {
           active?: boolean
           created_at?: string
           email?: string | null
+          family_id?: string | null
           id?: string
           name?: string
           photo_url?: string | null
           role?: string
+          status?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "family_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitations: {
+        Row: {
+          created_at: string
+          created_by: string
+          email_allowlist: string | null
+          expires_at: string
+          family_id: string
+          id: string
+          suggested_role: string
+          token: string
+          uses_remaining: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email_allowlist?: string | null
+          expires_at: string
+          family_id: string
+          id?: string
+          suggested_role?: string
+          token: string
+          uses_remaining?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email_allowlist?: string | null
+          expires_at?: string
+          family_id?: string
+          id?: string
+          suggested_role?: string
+          token?: string
+          uses_remaining?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      join_requests: {
+        Row: {
+          created_at: string
+          email: string
+          family_id: string
+          id: string
+          message: string | null
+          requester_user_id: string | null
+          reviewed_at: string | null
+          reviewed_by_user_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          family_id: string
+          id?: string
+          message?: string | null
+          requester_user_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          family_id?: string
+          id?: string
+          message?: string | null
+          requester_user_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "join_requests_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_families: {
+        Row: {
+          family_id: string
+          id: string
+          joined_at: string
+          role: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          family_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          family_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_families_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      generate_family_public_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      hash_join_pin: {
+        Args: { pin: string }
+        Returns: string
+      }
       setup_default_categories_for_user: {
         Args: { user_uuid: string }
         Returns: undefined
