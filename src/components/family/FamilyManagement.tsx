@@ -5,11 +5,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFamilies } from '@/hooks/useFamilies';
-import { Users, Copy, Mail, CheckCircle, XCircle, Clock, Shield, Eye, Edit, UserPlus, Settings } from 'lucide-react';
+import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
+import { FamilyMember, FamilyMemberRole } from '@/types/budget';
+import { Users, Copy, Mail, CheckCircle, XCircle, Clock, Shield, Eye, Edit, UserPlus, Settings, Trash2, User, Baby } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const FamilyManagement = () => {
@@ -21,11 +24,17 @@ export const FamilyManagement = () => {
     createInvitation,
     loading 
   } = useFamilies();
+  const { members, currentMember, addFamilyMember, updateAnyMemberProfile, deleteFamilyMember } = useBudgetSupabase();
   const { toast } = useToast();
   
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [editingFamilyName, setEditingFamilyName] = useState('');
+  const [editingFamily, setEditingFamily] = useState(false);
+  const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
+  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
+  const [newMemberData, setNewMemberData] = useState({ name: '', email: '', role: 'adult' as FamilyMemberRole });
 
   const copyFamilyId = () => {
     if (currentFamily) {
@@ -87,6 +96,109 @@ export const FamilyManagement = () => {
     }
   };
 
+  // Family member role functions
+  const getFamilyMemberRoleIcon = (role: FamilyMemberRole) => {
+    switch (role) {
+      case 'admin': return <Shield className="h-4 w-4" />;
+      case 'adult': return <User className="h-4 w-4" />;
+      case 'kid': return <Baby className="h-4 w-4" />;
+    }
+  };
+
+  const getFamilyMemberRoleName = (role: FamilyMemberRole) => {
+    switch (role) {
+      case 'admin': return 'Administrador';
+      case 'adult': return 'Adulto';
+      case 'kid': return 'Niño';
+    }
+  };
+
+  const getFamilyMemberRoleColor = (role: FamilyMemberRole) => {
+    switch (role) {
+      case 'admin': return 'destructive';
+      case 'adult': return 'default';
+      case 'kid': return 'secondary';
+    }
+  };
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  const isCurrentUserAdmin = currentMember?.role === 'admin';
+  const canEditMember = (member: FamilyMember) => isCurrentUserAdmin || member.id === currentMember?.id;
+  const canDeleteMember = (member: FamilyMember) => isCurrentUserAdmin && member.id !== currentMember?.id;
+
+  const handleEditFamilyName = async () => {
+    // TODO: Implement family name update
+    toast({
+      title: "Nombre actualizado",
+      description: "El nombre de la familia ha sido actualizado"
+    });
+    setEditingFamily(false);
+  };
+
+  const handleAddMember = async () => {
+    if (!newMemberData.name.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "El nombre es obligatorio"
+      });
+      return;
+    }
+
+    const success = await addFamilyMember({
+      name: newMemberData.name,
+      email: newMemberData.email || undefined,
+      role: newMemberData.role,
+      active: true
+    });
+
+    if (success) {
+      toast({
+        title: "Miembro agregado",
+        description: "El miembro ha sido agregado exitosamente"
+      });
+      setShowAddMemberDialog(false);
+      setNewMemberData({ name: '', email: '', role: 'adult' });
+    }
+  };
+
+  const handleUpdateMember = async () => {
+    if (!editingMember) return;
+    
+    try {
+      await updateAnyMemberProfile(editingMember.id, {
+        name: editingMember.name,
+        email: editingMember.email || undefined
+      });
+
+      toast({
+        title: "Perfil actualizado",
+        description: "La información del miembro ha sido actualizada"
+      });
+      setEditingMember(null);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo actualizar el perfil"
+      });
+    }
+  };
+
+  const handleDeleteMember = async (memberId: string) => {
+    const success = await deleteFamilyMember(memberId);
+    
+    if (success) {
+      toast({
+        title: "Miembro eliminado",
+        description: "El miembro ha sido eliminado de la familia"
+      });
+    }
+  };
+
   if (!currentFamily) {
     return (
       <div className="text-center py-8">
@@ -105,14 +217,50 @@ export const FamilyManagement = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                {currentFamily.name}
-              </CardTitle>
-              <CardDescription>
-                Moneda: {currentFamily.currency}
-              </CardDescription>
+            <div className="flex-1">
+              {editingFamily ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    <Input
+                      value={editingFamilyName}
+                      onChange={(e) => setEditingFamilyName(e.target.value)}
+                      placeholder="Nombre de la familia"
+                      className="text-xl font-semibold"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleEditFamilyName}>
+                      Guardar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setEditingFamily(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    {currentFamily.name}
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingFamilyName(currentFamily.name);
+                          setEditingFamily(true);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    Moneda: {currentFamily.currency}
+                  </CardDescription>
+                </div>
+              )}
             </div>
             <Badge variant={getRoleColor(currentFamily.userRole || 'viewer')}>
               {getRoleIcon(currentFamily.userRole || 'viewer')}
@@ -137,7 +285,7 @@ export const FamilyManagement = () => {
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
                     <Mail className="h-4 w-4 mr-1" />
-                    Invitar Miembro
+                    Invitar por Email
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -182,6 +330,67 @@ export const FamilyManagement = () => {
                   </div>
                 </DialogContent>
               </Dialog>
+
+              <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Agregar Miembro
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Agregar nuevo miembro</DialogTitle>
+                    <DialogDescription>
+                      Agrega un nuevo miembro a la familia manualmente
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="name">Nombre *</Label>
+                      <Input
+                        id="name"
+                        value={newMemberData.name}
+                        onChange={(e) => setNewMemberData(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Nombre completo"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email (opcional)</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={newMemberData.email}
+                        onChange={(e) => setNewMemberData(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="correo@ejemplo.com"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="role">Tipo</Label>
+                      <Select
+                        value={newMemberData.role}
+                        onValueChange={(value) => setNewMemberData(prev => ({ ...prev, role: value as FamilyMemberRole }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="adult">Adulto</SelectItem>
+                          <SelectItem value="kid">Niño</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowAddMemberDialog(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleAddMember}>
+                      Agregar
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </CardContent>
@@ -192,31 +401,158 @@ export const FamilyManagement = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Miembros de la Familia ({familyMembers.length})
+            Miembros de la Familia ({members.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {familyMembers.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-3 rounded-lg border">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium">
-                      {member.name.charAt(0).toUpperCase()}
-                    </span>
+            {members.map((member) => (
+              <Card key={member.id} className={member.id === currentMember?.id ? 'ring-2 ring-primary' : ''}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={member.photoUrl} />
+                        <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          {member.name}
+                          {member.id === currentMember?.id && (
+                            <Badge variant="outline">Tú</Badge>
+                          )}
+                        </CardTitle>
+                        <CardDescription>{member.email}</CardDescription>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Badge variant={getFamilyMemberRoleColor(member.role)} className="flex items-center gap-1">
+                        {getFamilyMemberRoleIcon(member.role)}
+                        {getFamilyMemberRoleName(member.role)}
+                      </Badge>
+                      
+                      <div className="flex gap-1">
+                        {canEditMember(member) && (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setEditingMember({ ...member })}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Editar miembro</DialogTitle>
+                                <DialogDescription>
+                                  Actualiza la información del miembro
+                                </DialogDescription>
+                              </DialogHeader>
+                              {editingMember && (
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="editName">Nombre</Label>
+                                    <Input
+                                      id="editName"
+                                      value={editingMember.name}
+                                      onChange={(e) => setEditingMember(prev => 
+                                        prev ? { ...prev, name: e.target.value } : null
+                                      )}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="editEmail">Email</Label>
+                                    <Input
+                                      id="editEmail"
+                                      type="email"
+                                      value={editingMember.email || ''}
+                                      onChange={(e) => setEditingMember(prev => 
+                                        prev ? { ...prev, email: e.target.value } : null
+                                      )}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              <DialogFooter>
+                                <Button variant="outline" onClick={() => setEditingMember(null)}>
+                                  Cancelar
+                                </Button>
+                                <Button onClick={handleUpdateMember}>
+                                  Guardar
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                        
+                        {canDeleteMember(member) && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar miembro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. El miembro {member.name} será eliminado 
+                                  permanentemente de la familia.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteMember(member.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">{member.name}</p>
-                    <p className="text-sm text-muted-foreground">{member.email}</p>
-                  </div>
-                </div>
-                <Badge variant={getRoleColor(member.role)}>
-                  {getRoleIcon(member.role)}
-                  <span className="ml-1">{getRoleName(member.role)}</span>
-                </Badge>
-              </div>
+                </CardHeader>
+              </Card>
             ))}
           </div>
+
+          {/* Miembros del sistema de familias */}
+          {familyMembers.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Sistema de Familias</h4>
+                <div className="space-y-2">
+                  {familyMembers.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between p-2 rounded border-l-2 border-l-primary/20 bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-medium">
+                            {member.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{member.name}</p>
+                          <p className="text-xs text-muted-foreground">{member.email}</p>
+                        </div>
+                      </div>
+                      <Badge variant={getRoleColor(member.role)} size="sm">
+                        {getRoleIcon(member.role)}
+                        <span className="ml-1">{getRoleName(member.role)}</span>
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

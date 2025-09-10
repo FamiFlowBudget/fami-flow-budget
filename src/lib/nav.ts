@@ -59,17 +59,10 @@ export const navItems: NavItem[] = [
     description: 'Organizar categorías de gastos'
   },
   {
-    label: 'Miembros',
-    href: '/members',
-    icon: Users,
-    rolesAllowed: ['admin', 'adult', 'kid'],
-    description: 'Gestionar miembros de la familia'
-  },
-  {
     label: 'Familia',
     href: '/family',
     icon: Users,
-    rolesAllowed: ['admin'],
+    rolesAllowed: ['admin', 'adult', 'kid'],
     description: 'Configuración y gestión de familia'
   }
 ];
