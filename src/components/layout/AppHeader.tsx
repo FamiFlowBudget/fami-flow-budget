@@ -8,7 +8,6 @@ import { PeriodSelector } from '../PeriodSelector';
 import { ThemeToggle } from '../ThemeToggle';
 import { UserMenu } from '../UserMenu';
 import { NewExpenseButton } from '../NewExpenseButton';
-
 import { getVisibleNavItems } from '@/lib/nav';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,7 +31,7 @@ export const AppHeader = () => {
   } = useAlerts();
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Always show navigation items for authenticated users, fallback to admin if no member data yet
   const userRole = currentMember?.role || (user ? 'admin' : null);
   const navItems = getVisibleNavItems(userRole);
@@ -93,7 +92,7 @@ export const AppHeader = () => {
             <AppDrawer />
             
             <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity min-w-0" aria-label="Ir al inicio">
-              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-10 w-10 object-contain flex-shrink-0" />
+              <img src="/lovable-uploads/16ccfe61-dec4-488a-b110-2589cd2ec3fa.png" alt="FamiFlow Logo" className="h-16 w-16 object-contain flex-shrink-0" />
               <div className="hidden sm:flex flex-col min-w-0">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Budget Tracker</span>
               </div>
