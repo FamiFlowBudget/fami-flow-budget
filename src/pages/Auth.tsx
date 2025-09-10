@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
+import { FamilySetupDialog } from '@/components/family/FamilySetupDialog';
+import { useFamilies } from '@/hooks/useFamilies';
 import { Loader2, DollarSign } from 'lucide-react';
 
 const Auth = () => {
@@ -13,15 +15,22 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showFamilySetup, setShowFamilySetup] = useState(false);
   const { signIn, signUp, user, loading } = useAuth();
+  const { families } = useFamilies();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (!loading && user) {
-      navigate('/', { replace: true });
+      // Si el usuario está autenticado pero no tiene familias, mostrar configuración
+      if (families.length === 0) {
+        setShowFamilySetup(true);
+      } else {
+        navigate('/', { replace: true });
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, families, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +50,13 @@ const Auth = () => {
     }
     
     setIsLoading(true);
-    await signUp(email, password);
+    const result = await signUp(email, password);
     setIsLoading(false);
+    
+    // Si el registro fue exitoso, mostrar configuración de familia
+    if (!result.error) {
+      setShowFamilySetup(true);
+    }
   };
 
   if (loading) {
@@ -54,8 +68,18 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4">
-      <div className="w-full max-w-md space-y-6">
+    <>
+      <FamilySetupDialog 
+        open={showFamilySetup} 
+        onOpenChange={(open) => {
+          setShowFamilySetup(open);
+          if (!open && user && families.length > 0) {
+            navigate('/', { replace: true });
+          }
+        }} 
+      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4">
+        <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center space-x-2">
             <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
@@ -180,8 +204,9 @@ const Auth = () => {
             </Tabs>
           </CardContent>
         </Card>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

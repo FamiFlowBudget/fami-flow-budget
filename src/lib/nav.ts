@@ -64,6 +64,13 @@ export const navItems: NavItem[] = [
     icon: Users,
     rolesAllowed: ['admin', 'adult', 'kid'],
     description: 'Gestionar miembros de la familia'
+  },
+  {
+    label: 'Familia',
+    href: '/family',
+    icon: Users,
+    rolesAllowed: ['admin'],
+    description: 'Configuración y gestión de familia'
   }
 ];
 

@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Budget from "./pages/Budget";
 import Categories from "./pages/Categories";
+import Family from "./pages/Family";
 import Members from "./pages/Members";
 import Expenses from "./pages/Expenses";
 import Import from "./pages/Import";
@@ -66,6 +67,13 @@ const App = () => (
             <ProtectedRoute>
               <AppLayout>
                 <Members />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/family" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Family />
               </AppLayout>
             </ProtectedRoute>
           } />
