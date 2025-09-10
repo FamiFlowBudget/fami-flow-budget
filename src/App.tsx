@@ -26,90 +26,90 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <FiltersProvider>
-    <PeriodProvider>
-      <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Index />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Dashboard />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/budget" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Budget />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/categories" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Categories />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/family" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Family />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/expenses" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Expenses />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/import" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Import />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/reports" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Reports />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/accounts" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Accounts />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/alerts" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Alerts />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-    </PeriodProvider>
+      <PeriodProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Index />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Dashboard />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/budget" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Budget />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/categories" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Categories />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/family" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Family />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/expenses" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Expenses />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/import" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Import />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/reports" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Reports />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/accounts" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Accounts />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/alerts" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Alerts />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </PeriodProvider>
     </FiltersProvider>
   </QueryClientProvider>
 );

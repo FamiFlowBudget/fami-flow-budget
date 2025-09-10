@@ -543,7 +543,7 @@ export const FamilyManagement = () => {
                           <p className="text-xs text-muted-foreground">{member.email}</p>
                         </div>
                       </div>
-                      <Badge variant={getRoleColor(member.role)}>
+                      <Badge variant={getRoleColor(member.role)} className="text-xs">
                         {getRoleIcon(member.role)}
                         <span className="ml-1">{getRoleName(member.role)}</span>
                       </Badge>
