@@ -7,6 +7,7 @@ import {
   Budget, 
   FamilyMember,
   FamilyMemberRole,
+  FamilyMemberStatus,
   BudgetProgress,
   DashboardKPIs,
   Currency
@@ -91,7 +92,8 @@ export const useBudgetSupabase = () => {
           email: data.email,
           role: data.role as FamilyMemberRole,
           photoUrl: data.photo_url,
-          active: data.active
+          active: data.active,
+          status: data.status as FamilyMemberStatus
         };
 
         setMembers(prev => [...prev, newMember]);
@@ -204,9 +206,10 @@ export const useBudgetSupabase = () => {
             id: newMember.id,
             name: newMember.name,
             email: newMember.email,
-            role: newMember.role as 'admin' | 'adult' | 'kid',
+            role: newMember.role as FamilyMemberRole,
             photoUrl: newMember.photo_url,
-            active: newMember.active
+            active: newMember.active,
+            status: newMember.status as FamilyMemberStatus
           };
           setMembers([mappedMember]);
           setCurrentMember(mappedMember);
@@ -216,9 +219,10 @@ export const useBudgetSupabase = () => {
           id: member.id,
           name: member.name,
           email: member.email,
-          role: member.role as 'admin' | 'adult' | 'kid',
+          role: member.role as FamilyMemberRole,
           photoUrl: member.photo_url,
-          active: member.active
+          active: member.active,
+          status: member.status as FamilyMemberStatus
         }));
         setMembers(mappedMembers);
         setCurrentMember(mappedMembers[0]);

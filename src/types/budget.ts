@@ -1,11 +1,33 @@
-// Tipos para el sistema de presupuestos familiares
-// Adaptado para funcionar con localStorage mientras se conecta Supabase
+// Tipos para el sistema de presupuestos familiares multi-familia
+// Actualizado para soportar múltiples familias con roles y gestión de miembros
 
 export type Currency = 'CLP' | 'USD' | 'EUR';
 
 export type PaymentMethod = 'cash' | 'debit' | 'credit' | 'transfer' | 'other';
 
-export type FamilyMemberRole = 'admin' | 'adult' | 'kid';
+export type FamilyMemberRole = 'admin' | 'editor' | 'visitor';
+
+export type FamilyMemberStatus = 'active' | 'pending' | 'revoked';
+
+export type JoinRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface Family {
+  id: string;
+  name: string;
+  familyPublicId: string;
+  currency: Currency;
+  timezone: string;
+  joinPinHash?: string;
+  invitationPolicy: {
+    requirePin: boolean;
+    defaultRoleOnInvite: 'editor' | 'visitor';
+    tokenExpiryDays: number;
+    allowEditorImports: boolean;
+    allowEditorReports: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface Category {
   id: string;
@@ -14,6 +36,7 @@ export interface Category {
   color: string; // Tailwind color class
   parentId?: string;
   order: number;
+  familyId?: string;
 }
 
 export interface FamilyMember {
@@ -23,6 +46,42 @@ export interface FamilyMember {
   role: FamilyMemberRole;
   photoUrl?: string;
   active: boolean;
+  familyId?: string;
+  status: FamilyMemberStatus;
+}
+
+export interface UserFamily {
+  id: string;
+  userId: string;
+  familyId: string;
+  role: FamilyMemberRole;
+  status: FamilyMemberStatus;
+  joinedAt: string;
+  family?: Family;
+}
+
+export interface JoinRequest {
+  id: string;
+  familyId: string;
+  requesterUserId?: string;
+  email: string;
+  message?: string;
+  status: JoinRequestStatus;
+  reviewedByUserId?: string;
+  reviewedAt?: string;
+  createdAt: string;
+}
+
+export interface Invitation {
+  id: string;
+  familyId: string;
+  token: string;
+  emailAllowlist?: string;
+  suggestedRole: FamilyMemberRole;
+  expiresAt: string;
+  usesRemaining: number;
+  createdBy: string;
+  createdAt: string;
 }
 
 export interface Budget {

@@ -55,7 +55,8 @@ export const useBudgetData = () => {
           name: 'Usuario Demo',
           email: 'demo@familia.cl',
           role: 'admin',
-          active: true
+          active: true,
+          status: 'active'
         };
         setMembers([demoMember]);
         setCurrentMember(demoMember);

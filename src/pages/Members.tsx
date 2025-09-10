@@ -19,7 +19,7 @@ const Members = () => {
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [newMemberData, setNewMemberData] = useState({ name: '', email: '', role: 'adult' as FamilyMemberRole });
+  const [newMemberData, setNewMemberData] = useState({ name: '', email: '', role: 'editor' as FamilyMemberRole });
   const [inviteEmail, setInviteEmail] = useState('');
 
   const isAdmin = currentMember?.role === 'admin';
@@ -29,24 +29,24 @@ const Members = () => {
   const getRoleIcon = (role: FamilyMemberRole) => {
     switch (role) {
       case 'admin': return <Shield className="h-4 w-4" />;
-      case 'adult': return <User className="h-4 w-4" />;
-      case 'kid': return <Baby className="h-4 w-4" />;
+      case 'editor': return <User className="h-4 w-4" />;
+      case 'visitor': return <Baby className="h-4 w-4" />;
     }
   };
 
   const getRoleName = (role: FamilyMemberRole) => {
     switch (role) {
       case 'admin': return 'Administrador';
-      case 'adult': return 'Adulto';
-      case 'kid': return 'Niño';
+      case 'editor': return 'Editor';
+      case 'visitor': return 'Visitante';
     }
   };
 
   const getRoleColor = (role: FamilyMemberRole) => {
     switch (role) {
       case 'admin': return 'destructive';
-      case 'adult': return 'default';
-      case 'kid': return 'secondary';
+      case 'editor': return 'default';
+      case 'visitor': return 'secondary';
     }
   };
 
@@ -64,7 +64,8 @@ const Members = () => {
       name: newMemberData.name,
       email: newMemberData.email || undefined,
       role: newMemberData.role,
-      active: true
+      active: true,
+      status: 'active'
     });
 
     if (success) {
@@ -73,7 +74,7 @@ const Members = () => {
         description: "El miembro ha sido agregado exitosamente"
       });
       setShowAddDialog(false);
-      setNewMemberData({ name: '', email: '', role: 'adult' });
+      setNewMemberData({ name: '', email: '', role: 'editor' });
     }
   };
 
@@ -225,8 +226,8 @@ const Members = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="adult">Adulto</SelectItem>
-                        <SelectItem value="kid">Niño</SelectItem>
+                        <SelectItem value="editor">Editor</SelectItem>
+                        <SelectItem value="visitor">Visitante</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
