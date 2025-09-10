@@ -426,9 +426,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_family_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       hash_join_pin: {
         Args: { pin: string }
         Returns: string
+      }
+      is_family_admin: {
+        Args: { family_uuid: string }
+        Returns: boolean
       }
       setup_default_categories_for_user: {
         Args: { user_uuid: string }
