@@ -219,10 +219,12 @@ export type Database = {
           active: boolean
           created_at: string
           email: string | null
+          family_id: string | null
           id: string
           name: string
           photo_url: string | null
           role: string
+          status: string
           updated_at: string
           user_id: string
         }
@@ -230,10 +232,12 @@ export type Database = {
           active?: boolean
           created_at?: string
           email?: string | null
+          family_id?: string | null
           id?: string
           name: string
           photo_url?: string | null
           role: string
+          status?: string
           updated_at?: string
           user_id: string
         }
@@ -241,14 +245,24 @@ export type Database = {
           active?: boolean
           created_at?: string
           email?: string | null
+          family_id?: string | null
           id?: string
           name?: string
           photo_url?: string | null
           role?: string
+          status?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "family_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
