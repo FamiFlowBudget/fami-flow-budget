@@ -11,7 +11,6 @@ import Auth from "./pages/Auth";
 import Budget from "./pages/Budget";
 import Categories from "./pages/Categories";
 import Family from "./pages/Family";
-import Members from "./pages/Members";
 import Expenses from "./pages/Expenses";
 import Import from "./pages/Import";
 import Reports from "./pages/Reports";
@@ -60,13 +59,6 @@ const App = () => (
             <ProtectedRoute>
               <AppLayout>
                 <Categories />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/members" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Members />
               </AppLayout>
             </ProtectedRoute>
           } />
