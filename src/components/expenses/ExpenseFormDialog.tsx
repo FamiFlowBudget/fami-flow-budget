@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { PaymentMethod } from '@/types/budget';
-import { Calculator, Calendar, CreditCard, Tag, User } from 'lucide-react';
+import { Calculator, Calendar, CreditCard, Tag } from 'lucide-react';
 
 interface ExpenseFormData {
   amount: number;
@@ -18,38 +18,22 @@ interface ExpenseFormData {
   merchant?: string;
   paymentMethod: PaymentMethod;
   date: string;
-  memberId?: string; // For admin to select member
 }
 
 interface ExpenseFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  expenseToEdit?: {
-    id: string;
-    amount: number;
-    categoryId: string;
-    description: string;
-    merchant?: string;
-    paymentMethod: PaymentMethod;
-    date: string;
-    memberId?: string;
-  };
 }
 
-export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFormDialogProps) => {
+export const ExpenseFormDialog = ({ isOpen, onClose }: ExpenseFormDialogProps) => {
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ExpenseFormData>({
     defaultValues: {
-      date: expenseToEdit?.date || new Date().toISOString().split('T')[0],
-      paymentMethod: expenseToEdit?.paymentMethod || 'debit',
-      amount: expenseToEdit?.amount || 0,
-      categoryId: expenseToEdit?.categoryId || '',
-      description: expenseToEdit?.description || '',
-      merchant: expenseToEdit?.merchant || '',
-      memberId: expenseToEdit?.memberId || '',
+      date: new Date().toISOString().split('T')[0],
+      paymentMethod: 'debit',
     }
   });
   
-  const { addExpense, updateExpense, categories, currentMember, members, currency } = useBudgetSupabase();
+  const { addExpense, categories, currentMember, currency } = useBudgetSupabase();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -63,50 +47,31 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
       return;
     }
 
-    // Determinar el miembro: si es admin y seleccionó uno, usar ese; sino, usar el currentMember
-    const targetMemberId = (currentMember.role === 'admin' && data.memberId) ? data.memberId : currentMember.id;
-
     setIsSubmitting(true);
     try {
-      if (expenseToEdit) {
-        await updateExpense(expenseToEdit.id, {
-          categoryId: data.categoryId,
-          amount: data.amount,
-          description: data.description,
-          merchant: data.merchant,
-          paymentMethod: data.paymentMethod,
-          date: data.date,
-        });
+      await addExpense({
+        memberId: currentMember.id,
+        categoryId: data.categoryId,
+        amount: data.amount,
+        currency,
+        description: data.description,
+        merchant: data.merchant,
+        paymentMethod: data.paymentMethod,
+        tags: [],
+        date: data.date,
+      });
 
-        toast({
-          title: "¡Gasto actualizado!",
-          description: `Se actualizó el gasto de $${data.amount.toLocaleString('es-CL')}`,
-        });
-      } else {
-        await addExpense({
-          memberId: targetMemberId,
-          categoryId: data.categoryId,
-          amount: data.amount,
-          currency,
-          description: data.description,
-          merchant: data.merchant,
-          paymentMethod: data.paymentMethod,
-          tags: [],
-          date: data.date,
-        });
-
-        toast({
-          title: "¡Gasto agregado!",
-          description: `Se registró un gasto de $${data.amount.toLocaleString('es-CL')}`,
-        });
-      }
+      toast({
+        title: "¡Gasto agregado!",
+        description: `Se registró un gasto de $${data.amount.toLocaleString('es-CL')}`,
+      });
 
       reset();
       onClose();
     } catch (error) {
       toast({
         title: "Error",
-        description: expenseToEdit ? "No se pudo actualizar el gasto" : "No se pudo agregar el gasto",
+        description: "No se pudo agregar el gasto",
         variant: "destructive",
       });
     } finally {
@@ -127,7 +92,7 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
             <div className="p-2 rounded-lg bg-primary/10">
               <Calculator className="h-5 w-5 text-primary" />
             </div>
-            <span>{expenseToEdit ? 'Editar Gasto' : 'Nuevo Gasto'}</span>
+            <span>Nuevo Gasto</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -155,35 +120,13 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
             )}
           </div>
 
-          {/* Miembro (solo para admin) */}
-          {currentMember?.role === 'admin' && (
-            <div className="space-y-2">
-              <Label className="flex items-center space-x-2">
-                <User className="h-4 w-4" />
-                <span>Miembro *</span>
-              </Label>
-              <Select onValueChange={(value) => setValue('memberId', value)} defaultValue={expenseToEdit?.memberId || currentMember.id}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un miembro" />
-                </SelectTrigger>
-                <SelectContent>
-                  {members.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {member.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           {/* Categoría */}
           <div className="space-y-2">
             <Label className="flex items-center space-x-2">
               <Tag className="h-4 w-4" />
               <span>Categoría *</span>
             </Label>
-            <Select onValueChange={(value) => setValue('categoryId', value)} defaultValue={expenseToEdit?.categoryId}>
+            <Select onValueChange={(value) => setValue('categoryId', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona una categoría" />
               </SelectTrigger>
@@ -227,7 +170,7 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
               <span>Método de pago</span>
             </Label>
             <Select 
-              defaultValue={expenseToEdit?.paymentMethod || "debit"}
+              defaultValue="debit"
               onValueChange={(value) => setValue('paymentMethod', value as PaymentMethod)}
             >
               <SelectTrigger>
@@ -271,7 +214,7 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
               disabled={isSubmitting}
               className="flex-1 bg-gradient-primary"
             >
-              {isSubmitting ? 'Guardando...' : (expenseToEdit ? 'Actualizar Gasto' : 'Guardar Gasto')}
+              {isSubmitting ? 'Guardando...' : 'Guardar Gasto'}
             </Button>
           </div>
         </form>

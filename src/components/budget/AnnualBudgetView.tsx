@@ -1,18 +1,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Calendar, TrendingUp } from 'lucide-react';
+import { BarChart3, Calendar, TrendingUp, User } from 'lucide-react';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { formatCurrency } from '@/types/budget';
 import { usePeriod } from '@/providers/PeriodProvider';
-import { getCategoryIconById } from '@/lib/icons';
+import * as Icons from 'lucide-react';
 
 interface AnnualBudgetViewProps {
   selectedMembers: string[];
   onEditBudget: (categoryId: string, memberId: string, month: number, existingBudget?: any) => void;
-  onDeleteBudget?: (budgetId: string, categoryName: string, memberName: string) => void;
 }
 
-export const AnnualBudgetView = ({ selectedMembers, onEditBudget, onDeleteBudget }: AnnualBudgetViewProps) => {
+export const AnnualBudgetView = ({ selectedMembers, onEditBudget }: AnnualBudgetViewProps) => {
   const { budgets, categories, members } = useBudgetSupabase();
   const { period } = usePeriod();
 
@@ -59,6 +59,11 @@ export const AnnualBudgetView = ({ selectedMembers, onEditBudget, onDeleteBudget
       hasData: yearTotal > 0
     };
   }).filter(cd => cd.hasData);
+
+  const getIconComponent = (iconName: string) => {
+    const IconComponent = (Icons as any)[iconName] || Icons.Tag;
+    return <IconComponent className="w-4 h-4" />;
+  };
 
   const totalAnnualBudget = categoryData.reduce((sum, cd) => sum + cd.yearTotal, 0);
   const avgMonthlyBudget = totalAnnualBudget / 12;
@@ -126,83 +131,79 @@ export const AnnualBudgetView = ({ selectedMembers, onEditBudget, onDeleteBudget
             </div>
           ) : (
             <div className="space-y-6">
-              {categoryData.map((data) => {
-                const IconComponent = getCategoryIconById(data.category.id, categories);
-                
-                return (
-                  <div key={data.category.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <IconComponent className="w-4 h-4" />
-                        <div>
-                          <h3 className="font-medium">{data.category.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Total anual: {formatCurrency(data.yearTotal)} | 
-                            Promedio: {formatCurrency(data.avgMonth)}
-                          </p>
-                        </div>
+              {categoryData.map((data) => (
+                <div key={data.category.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      {getIconComponent(data.category.icon)}
+                      <div>
+                        <h3 className="font-medium">{data.category.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Total anual: {formatCurrency(data.yearTotal)} | 
+                          Promedio: {formatCurrency(data.avgMonth)}
+                        </p>
                       </div>
                     </div>
-
-                    {/* Grid mensual */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                      {data.monthlyData.map((monthData) => (
-                        <div 
-                          key={monthData.month}
-                          className="border rounded p-2 hover:bg-accent/50 transition-colors"
-                        >
-                          <div className="text-xs font-medium text-muted-foreground mb-1">
-                            {monthData.monthName}
-                          </div>
-                          <div className="text-sm font-bold">
-                            {formatCurrency(monthData.total)}
-                          </div>
-                          
-                          {/* Detalle por miembros si hay datos */}
-                          {monthData.total > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {monthData.memberTotals
-                                .filter(mt => mt.amount > 0)
-                                .map(memberTotal => (
-                                <div key={memberTotal.member.id} className="flex items-center justify-between text-xs">
-                                  <span className="truncate">{memberTotal.member.name}</span>
-                                  <span className="font-medium">{formatCurrency(memberTotal.amount)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Botón para editar/agregar */}
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="w-full mt-2 h-6 text-xs"
-                            onClick={() => {
-                              // Para vista anual, editamos el primer miembro filtrado o el primero disponible
-                              const targetMember = selectedMembers.length > 0 
-                                ? members.find(m => selectedMembers.includes(m.id))
-                                : members[0];
-                              
-                              if (targetMember) {
-                                const existingBudget = monthData.memberTotals
-                                  .find(mt => mt.member.id === targetMember.id);
-                                onEditBudget(
-                                  data.category.id, 
-                                  targetMember.id, 
-                                  monthData.month,
-                                  existingBudget
-                                );
-                              }
-                            }}
-                          >
-                            {monthData.total > 0 ? 'Editar' : 'Agregar'}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                );
-              })}
+
+                  {/* Grid mensual */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                    {data.monthlyData.map((monthData) => (
+                      <div 
+                        key={monthData.month}
+                        className="border rounded p-2 hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="text-xs font-medium text-muted-foreground mb-1">
+                          {monthData.monthName}
+                        </div>
+                        <div className="text-sm font-bold">
+                          {formatCurrency(monthData.total)}
+                        </div>
+                        
+                        {/* Detalle por miembros si hay datos */}
+                        {monthData.total > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {monthData.memberTotals
+                              .filter(mt => mt.amount > 0)
+                              .map(memberTotal => (
+                              <div key={memberTotal.member.id} className="flex items-center justify-between text-xs">
+                                <span className="truncate">{memberTotal.member.name}</span>
+                                <span className="font-medium">{formatCurrency(memberTotal.amount)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Botón para editar/agregar */}
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="w-full mt-2 h-6 text-xs"
+                          onClick={() => {
+                            // Para vista anual, editamos el primer miembro filtrado o el primero disponible
+                            const targetMember = selectedMembers.length > 0 
+                              ? members.find(m => selectedMembers.includes(m.id))
+                              : members[0];
+                            
+                            if (targetMember) {
+                              const existingBudget = monthData.memberTotals
+                                .find(mt => mt.member.id === targetMember.id);
+                              onEditBudget(
+                                data.category.id, 
+                                targetMember.id, 
+                                monthData.month,
+                                existingBudget
+                              );
+                            }
+                          }}
+                        >
+                          {monthData.total > 0 ? 'Editar' : 'Agregar'}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
