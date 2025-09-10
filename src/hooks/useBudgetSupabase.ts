@@ -219,10 +219,45 @@ export const useBudgetSupabase = () => {
           email: member.email,
           role: member.role as 'admin' | 'adult' | 'kid',
           photoUrl: member.photo_url,
-          active: member.active
+          active: member.active,
+          userId: member.user_id
         }));
         setMembers(mappedMembers);
-        setCurrentMember(mappedMembers[0]);
+        
+        // Buscar el miembro que corresponde al usuario autenticado
+        const userMember = mappedMembers.find(member => member.userId === user.id);
+        console.log('Looking for user member with id:', user.id, 'found:', userMember);
+        
+        if (userMember) {
+          setCurrentMember(userMember);
+        } else {
+          // Si no existe el miembro para este usuario, crear uno
+          console.log('Creating new member for authenticated user');
+          const { data: newMember } = await supabase
+            .from('family_members')
+            .insert({
+              user_id: user.id,
+              name: user.email?.split('@')[0] || 'Usuario',
+              email: user.email,
+              role: 'admin'
+            })
+            .select()
+            .single();
+          
+          if (newMember) {
+            const mappedNewMember = {
+              id: newMember.id,
+              name: newMember.name,
+              email: newMember.email,
+              role: newMember.role as 'admin' | 'adult' | 'kid',
+              photoUrl: newMember.photo_url,
+              active: newMember.active,
+              userId: newMember.user_id
+            };
+            setMembers(prev => [...prev, mappedNewMember]);
+            setCurrentMember(mappedNewMember);
+          }
+        }
       }
 
       // Cargar presupuestos

@@ -23,6 +23,7 @@ export interface FamilyMember {
   role: FamilyMemberRole;
   photoUrl?: string;
   active: boolean;
+  userId?: string;
 }
 
 export interface Budget {
