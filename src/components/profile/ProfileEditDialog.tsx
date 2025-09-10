@@ -100,7 +100,7 @@ export const ProfileEditDialog = ({ open, onOpenChange }: ProfileEditDialogProps
             <Label>Rol</Label>
             <Input 
               value={currentMember.role === 'admin' ? 'Administrador' : 
-                     currentMember.role === 'editor' ? 'Editor' : 'Visitante'} 
+                     currentMember.role === 'adult' ? 'Adulto' : 'Niño'} 
               disabled 
               className="opacity-50" 
             />

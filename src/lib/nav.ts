@@ -4,7 +4,7 @@ export interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  rolesAllowed: ('admin' | 'editor' | 'visitor')[];
+  rolesAllowed: ('admin' | 'adult' | 'kid')[];
   description?: string;
 }
 
@@ -13,21 +13,21 @@ export const navItems: NavItem[] = [
     label: 'Inicio',
     href: '/',
     icon: Home,
-    rolesAllowed: ['admin', 'editor', 'visitor'],
+    rolesAllowed: ['admin', 'adult', 'kid'],
     description: 'Panel principal y resumen'
   },
   {
     label: 'Gastos',
     href: '/expenses',
     icon: Receipt,
-    rolesAllowed: ['admin', 'editor', 'visitor'],
+    rolesAllowed: ['admin', 'adult', 'kid'],
     description: 'Ver y gestionar gastos'
   },
   {
     label: 'Presupuestos',
     href: '/budget',
     icon: Wallet,
-    rolesAllowed: ['admin', 'editor'],
+    rolesAllowed: ['admin', 'adult'],
     description: 'Configurar presupuestos familiares'
   },
   {
@@ -41,7 +41,7 @@ export const navItems: NavItem[] = [
     label: 'Reportes',
     href: '/reports',
     icon: BarChart2,
-    rolesAllowed: ['admin', 'editor'],
+    rolesAllowed: ['admin', 'adult'],
     description: 'Análisis y reportes detallados'
   },
   {
@@ -62,12 +62,12 @@ export const navItems: NavItem[] = [
     label: 'Miembros',
     href: '/members',
     icon: Users,
-    rolesAllowed: ['admin', 'editor', 'visitor'],
+    rolesAllowed: ['admin', 'adult', 'kid'],
     description: 'Gestionar miembros de la familia'
   }
 ];
 
-export const getVisibleNavItems = (userRole: 'admin' | 'editor' | 'visitor' | null) => {
+export const getVisibleNavItems = (userRole: 'admin' | 'adult' | 'kid' | null) => {
   if (!userRole) return [];
   return navItems.filter(item => item.rolesAllowed && item.rolesAllowed.includes(userRole));
 };

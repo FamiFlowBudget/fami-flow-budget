@@ -11,7 +11,7 @@ interface MemberData {
   id: string;
   name: string;
   photoUrl?: string;
-  role: 'admin' | 'editor' | 'visitor';
+  role: 'admin' | 'adult' | 'kid';
   monthlySpent: number;
   monthlyBudget: number;
   percentage: number;
