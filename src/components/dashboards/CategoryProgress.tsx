@@ -1,11 +1,11 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { BudgetProgress, formatCurrency } from '@/types/budget';
-import { 
-  Home, ShoppingCart, Car, GraduationCap, Heart, Shield, 
-  Gamepad2, Shirt, PiggyBank, AlertTriangle, Target, Eye 
-} from 'lucide-react';
+import { Target, Eye } from 'lucide-react';
+import { getCategoryIconByName } from '@/lib/icons';
+import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 
 interface CategoryProgressProps {
   categories: BudgetProgress[];
@@ -13,25 +13,9 @@ interface CategoryProgressProps {
   showAll?: boolean;
 }
 
-// Mapeo de iconos por nombre de categoría
-const getCategoryIcon = (categoryName: string) => {
-  const iconMap: Record<string, any> = {
-    'Hogar': Home,
-    'Alimentación': ShoppingCart,
-    'Transporte': Car,
-    'Educación': GraduationCap,
-    'Salud': Heart,
-    'Seguros': Shield,
-    'Entretenimiento': Gamepad2,
-    'Ropa': Shirt,
-    'Ahorro': PiggyBank,
-    'Imprevistos': AlertTriangle,
-  };
-  
-  return iconMap[categoryName] || AlertTriangle;
-};
-
-export const CategoryProgress = ({ categories, onCategoryClick, showAll = false }: CategoryProgressProps) => {
+export const CategoryProgress = ({ categories, onCategoryClick, showAll: initialShowAll = false }: CategoryProgressProps) => {
+  const { categories: allCategories } = useBudgetSupabase();
+  const [showAll, setShowAll] = useState(initialShowAll);
   const displayCategories = showAll ? categories : categories.slice(0, 6);
 
   if (categories.length === 0) {
@@ -52,16 +36,29 @@ export const CategoryProgress = ({ categories, onCategoryClick, showAll = false 
         <div className="flex items-center justify-between">
           <CardTitle>Progreso por Categoría</CardTitle>
           {!showAll && categories.length > 6 && (
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowAll(true)}
+            >
               <Eye className="h-4 w-4 mr-2" />
               Ver todas
+            </Button>
+          )}
+          {showAll && categories.length > 6 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowAll(false)}
+            >
+              Ver menos
             </Button>
           )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {displayCategories.map((category) => {
-          const IconComponent = getCategoryIcon(category.categoryName);
+          const IconComponent = getCategoryIconByName(category.categoryName, allCategories);
           
           return (
             <div 

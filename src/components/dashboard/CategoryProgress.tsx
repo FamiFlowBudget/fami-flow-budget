@@ -1,34 +1,25 @@
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { BudgetProgress, formatCurrency } from '@/types/budget';
-import { 
-  Home, ShoppingCart, Car, GraduationCap, Heart, Shield, 
-  Gamepad2, Shirt, PiggyBank, AlertTriangle 
-} from 'lucide-react';
+import { getCategoryIconByName } from '@/lib/icons';
+import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 
 interface CategoryProgressProps {
   categories: BudgetProgress[];
 }
 
-// Mapeo de iconos por nombre de categoría
-const getCategoryIcon = (categoryName: string) => {
-  const iconMap: Record<string, any> = {
-    'Hogar': Home,
-    'Alimentación': ShoppingCart,
-    'Transporte': Car,
-    'Educación': GraduationCap,
-    'Salud': Heart,
-    'Seguros': Shield,
-    'Entretenimiento': Gamepad2,
-    'Ropa': Shirt,
-    'Ahorro': PiggyBank,
-    'Imprevistos': AlertTriangle,
-  };
-  
-  return iconMap[categoryName] || AlertTriangle;
-};
+// Componente Target para el estado vacío
+const Target = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10"/>
+    <circle cx="12" cy="12" r="6"/>
+    <circle cx="12" cy="12" r="2"/>
+  </svg>
+);
 
 export const CategoryProgress = ({ categories }: CategoryProgressProps) => {
+  const { categories: allCategories } = useBudgetSupabase();
+
   if (categories.length === 0) {
     return (
       <Card className="p-6 text-center">
@@ -46,7 +37,7 @@ export const CategoryProgress = ({ categories }: CategoryProgressProps) => {
       <h3 className="font-semibold text-lg mb-4">Progreso por Categoría</h3>
       <div className="space-y-4">
         {categories.map((category) => {
-          const IconComponent = getCategoryIcon(category.categoryName);
+          const IconComponent = getCategoryIconByName(category.categoryName, allCategories);
           
           return (
             <div key={category.categoryId} className="space-y-2">
@@ -95,12 +86,3 @@ export const CategoryProgress = ({ categories }: CategoryProgressProps) => {
     </Card>
   );
 };
-
-// Componente Target para el estado vacío (añadir import)
-const Target = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="10"/>
-    <circle cx="12" cy="12" r="6"/>
-    <circle cx="12" cy="12" r="2"/>
-  </svg>
-);

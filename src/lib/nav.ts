@@ -1,4 +1,4 @@
-import { Home, Receipt, Wallet, Upload, BarChart2, Layers, Tag, Bell } from 'lucide-react';
+import { Home, Receipt, Wallet, Upload, BarChart2, Layers, Tag, Bell, Users } from 'lucide-react';
 
 export interface NavItem {
   label: string;
@@ -59,11 +59,11 @@ export const navItems: NavItem[] = [
     description: 'Organizar categorías de gastos'
   },
   {
-    label: 'Alertas',
-    href: '/alerts',
-    icon: Bell,
-    rolesAllowed: ['admin', 'adult'],
-    description: 'Alertas y notificaciones'
+    label: 'Miembros',
+    href: '/members',
+    icon: Users,
+    rolesAllowed: ['admin', 'adult', 'kid'],
+    description: 'Gestionar miembros de la familia'
   }
 ];
 

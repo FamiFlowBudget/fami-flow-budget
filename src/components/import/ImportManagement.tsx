@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileText, AlertCircle, CheckCircle, X, Download } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle, X, Download, Camera, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 
@@ -30,6 +30,12 @@ export const ImportManagement = () => {
   const csvInputRef = useRef<HTMLInputElement>(null);
   const excelInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  const [showCamera, setShowCamera] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [processingImage, setProcessingImage] = useState(false);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>, type: 'csv' | 'excel' | 'pdf') => {
     const file = event.target.files?.[0];
@@ -270,6 +276,186 @@ export const ImportManagement = () => {
     }
   };
 
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment', // Usar cámara trasera en móviles
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+      
+      setStream(mediaStream);
+      setShowCamera(true);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (error) {
+      toast({
+        title: "Error de cámara",
+        description: "No se pudo acceder a la cámara. Verifica los permisos.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const captureImage = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    setProcessingImage(true);
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) return;
+    
+    // Configurar el canvas con las dimensiones del video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Dibujar el frame actual del video en el canvas
+    ctx.drawImage(video, 0, 0);
+    
+    // Convertir a blob para procesamiento
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      
+      try {
+        const transactions = await extractDataFromImage(blob);
+        
+        if (transactions.length === 0) {
+          toast({
+            title: "No se encontraron datos",
+            description: "No se pudo extraer información de gastos de la imagen. Intenta con mejor iluminación.",
+            variant: "destructive"
+          });
+        } else {
+          setImportedData(prev => [...prev, ...transactions]);
+          toast({
+            title: "Imagen procesada",
+            description: `Se extrajeron ${transactions.length} gastos de la imagen`,
+          });
+        }
+        
+        stopCamera();
+      } catch (error) {
+        toast({
+          title: "Error al procesar imagen",
+          description: "No se pudo procesar la imagen capturada",
+          variant: "destructive"
+        });
+      } finally {
+        setProcessingImage(false);
+      }
+    }, 'image/jpeg', 0.8);
+  };
+
+  const extractDataFromImage = async (imageBlob: Blob): Promise<ImportedTransaction[]> => {
+    const { createWorker } = await import('tesseract.js');
+    
+    const worker = await createWorker('spa', 1, {
+      logger: m => console.log(m)
+    });
+    
+    try {
+      const { data: { text } } = await worker.recognize(imageBlob);
+      console.log('OCR Text:', text);
+      
+      // Procesar el texto extraído para encontrar información de gastos
+      const transactions = parseReceiptText(text);
+      
+      await worker.terminate();
+      return transactions;
+    } catch (error) {
+      await worker.terminate();
+      throw error;
+    }
+  };
+
+  const parseReceiptText = (text: string): ImportedTransaction[] => {
+    const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+    const transactions: ImportedTransaction[] = [];
+    
+    // Patrones comunes para extraer información
+    const datePattern = /(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/;
+    const amountPattern = /\$?(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)/;
+    const totalPattern = /(?:total|suma|subtotal|monto)\s*:?\s*\$?(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)/i;
+    
+    let foundDate = '';
+    let merchantName = '';
+    let totalAmount = 0;
+    
+    // Buscar fecha
+    for (const line of lines) {
+      const dateMatch = line.match(datePattern);
+      if (dateMatch) {
+        foundDate = dateMatch[1];
+        break;
+      }
+    }
+    
+    // Buscar nombre del comercio (típicamente en las primeras líneas)
+    for (let i = 0; i < Math.min(5, lines.length); i++) {
+      const line = lines[i].toLowerCase();
+      if (!line.match(/\d/) && line.length > 3 && line.length < 50) {
+        merchantName = lines[i];
+        break;
+      }
+    }
+    
+    // Buscar monto total
+    for (const line of lines) {
+      const totalMatch = line.match(totalPattern);
+      if (totalMatch) {
+        const amount = parseFloat(totalMatch[1].replace(/[.,]/g, ''));
+        if (!isNaN(amount)) {
+          totalAmount = amount;
+          break;
+        }
+      }
+    }
+    
+    // Si no se encontró un total específico, buscar el monto más grande
+    if (totalAmount === 0) {
+      let maxAmount = 0;
+      for (const line of lines) {
+        const amounts = line.match(new RegExp(amountPattern.source, 'g'));
+        if (amounts) {
+          for (const amountStr of amounts) {
+            const amount = parseFloat(amountStr.replace(/[^\d.,]/g, '').replace(/[.,]/g, ''));
+            if (!isNaN(amount) && amount > maxAmount) {
+              maxAmount = amount;
+            }
+          }
+        }
+      }
+      totalAmount = maxAmount;
+    }
+    
+    // Crear transacción si tenemos información suficiente
+    if (totalAmount > 0) {
+      transactions.push({
+        id: `receipt-${Date.now()}`,
+        date: foundDate || new Date().toISOString().split('T')[0],
+        description: merchantName || 'Gasto desde imagen',
+        amount: totalAmount,
+        status: 'pending'
+      });
+    }
+    
+    return transactions;
+  };
+
   const downloadTemplate = () => {
     const csvContent = [
       ['fecha', 'descripción', 'monto', 'categoría'],
@@ -304,7 +490,7 @@ export const ImportManagement = () => {
       </div>
 
       {/* Import Options */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => csvInputRef.current?.click()}>
           <CardHeader>
@@ -379,7 +565,75 @@ export const ImportManagement = () => {
             />
           </CardContent>
         </Card>
+
+        <Card className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={startCamera}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="w-5 h-5 text-purple-500" />
+              Capturar Factura
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Toma una foto de tu factura o recibo para extraer automáticamente el gasto
+            </p>
+            <Button className="w-full" disabled={importing || processingImage}>
+              {processingImage ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                'Usar Cámara'
+              )}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Camera Modal */}
+      {showCamera && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg p-4 w-full max-w-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Capturar Factura</h3>
+              <Button variant="ghost" size="sm" onClick={stopCamera}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="relative">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="w-full h-auto max-h-96 rounded-lg bg-black"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+              
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 space-x-4">
+                <Button
+                  onClick={captureImage}
+                  disabled={processingImage}
+                  size="lg"
+                  className="bg-white text-black hover:bg-gray-200"
+                >
+                  {processingImage ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Camera className="w-5 h-5" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            <p className="text-sm text-muted-foreground mt-2 text-center">
+              Asegúrate de que la factura esté bien iluminada y enfocada antes de capturar
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Progress */}
       {importing && (
@@ -479,6 +733,7 @@ export const ImportManagement = () => {
             <p><strong>CSV:</strong> Debe incluir columnas 'fecha', 'descripción' y 'monto'</p>
             <p><strong>Excel:</strong> Formato similar al CSV, primera fila como encabezados</p>
             <p><strong>PDF:</strong> Estados de cuenta bancarios con transacciones listadas</p>
+            <p><strong>Cámara:</strong> Captura facturas o recibos con buena iluminación para extracción automática</p>
             
             <div className="mt-4 p-3 bg-muted/50 rounded-lg">
               <p className="font-medium mb-2">Ejemplo de formato CSV:</p>
