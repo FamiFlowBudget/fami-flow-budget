@@ -145,6 +145,7 @@ export const useBudgetSupabase = () => {
     if (!user) return;
     
     setLoading(true);
+    console.log('Loading data for user:', user.id);
     try {
       // Cargar categorías
       const { data: categoriesData } = await supabase

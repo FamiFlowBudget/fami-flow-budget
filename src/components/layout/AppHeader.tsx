@@ -20,7 +20,8 @@ export const AppHeader = () => {
   } = useAuth();
   const {
     currentMember,
-    getDashboardKPIs
+    getDashboardKPIs,
+    loading
   } = useBudgetSupabase();
   const {
     getPeriodLabel
@@ -30,7 +31,10 @@ export const AppHeader = () => {
   } = useAlerts();
   const location = useLocation();
   const navigate = useNavigate();
-  const navItems = getVisibleNavItems(currentMember?.role || null);
+  
+  // Always show navigation items for authenticated users, fallback to admin if no member data yet
+  const userRole = currentMember?.role || (user ? 'admin' : null);
+  const navItems = getVisibleNavItems(userRole);
   const kpis = getDashboardKPIs();
 
   // Online/offline detection
