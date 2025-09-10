@@ -14,6 +14,7 @@ import { MonthlyBudgetView } from './MonthlyBudgetView';
 import { AnnualBudgetView } from './AnnualBudgetView';
 import { useToast } from '@/hooks/use-toast';
 import { getCategoryIconById } from '@/lib/icons';
+import { getCategoryPath } from '@/utils/categoryUtils';
 
 // Helper component for category icons
 const CategoryIcon = ({ category, categories }: { category: any; categories: any[] }) => {
@@ -104,7 +105,7 @@ export const FamilyBudgetView = () => {
   };
 
   const getCategoryName = (categoryId: string) => {
-    return categories.find(c => c.id === categoryId)?.name || 'Categoría';
+    return getCategoryPath(categoryId, categories);
   };
 
   const getMemberName = (memberId: string) => {
@@ -187,14 +188,29 @@ export const FamilyBudgetView = () => {
                         <SelectValue placeholder="Seleccionar categoría" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map(category => (
-                          <SelectItem key={category.id} value={category.id}>
-                            <div className="flex items-center gap-2">
-                              <CategoryIcon category={category} categories={categories} />
-                              {category.name}
+                        {categories.filter(cat => !cat.parentId).map((category) => {
+                          const subcategories = categories.filter(sub => sub.parentId === category.id);
+                          return (
+                            <div key={category.id}>
+                              <SelectItem value={category.id}>
+                                <div className="flex items-center gap-2 font-medium">
+                                  <CategoryIcon category={category} categories={categories} />
+                                  <span className="text-muted-foreground">📁</span>
+                                  {category.name}
+                                </div>
+                              </SelectItem>
+                              {subcategories.map((subcategory) => (
+                                <SelectItem key={subcategory.id} value={subcategory.id}>
+                                  <div className="flex items-center gap-2 ml-4">
+                                    <CategoryIcon category={subcategory} categories={categories} />
+                                    <span className="text-muted-foreground">└</span>
+                                    {subcategory.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
                             </div>
-                          </SelectItem>
-                        ))}
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>

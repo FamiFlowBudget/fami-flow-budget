@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Tag, Palette, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Plus, Tag, Palette, Edit, Trash2, MoreVertical, FolderPlus } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { useToast } from '@/hooks/use-toast';
+import { SubcategorySetupDialog } from '@/components/subcategories/SubcategorySetupDialog';
 import * as Icons from 'lucide-react';
 
 const iconOptions = [
@@ -59,18 +60,22 @@ export const CategoryManagement = () => {
   const { categories, addCategory, updateCategory, deleteCategory, cleanDuplicateCategories, loading } = useBudgetSupabase();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
+  const [selectedCategoryForSub, setSelectedCategoryForSub] = useState<{id: string, name: string} | null>(null);
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     icon: 'Tag',
-    color: 'blue'
+    color: 'blue',
+    parentId: ''
   });
 
   const resetForm = () => {
     setFormData({
       name: '',
       icon: 'Tag',
-      color: 'blue'
+      color: 'blue',
+      parentId: ''
     });
     setEditingCategory(null);
   };
@@ -80,7 +85,8 @@ export const CategoryManagement = () => {
     setFormData({
       name: category.name,
       icon: category.icon,
-      color: category.color
+      color: category.color,
+      parentId: category.parentId || ''
     });
     setDialogOpen(true);
   };
@@ -110,7 +116,8 @@ export const CategoryManagement = () => {
         await updateCategory(editingCategory.id, {
           name: formData.name,
           icon: formData.icon,
-          color: formData.color
+          color: formData.color,
+          parentId: formData.parentId || null
         });
 
         toast({
@@ -125,6 +132,7 @@ export const CategoryManagement = () => {
           name: formData.name,
           icon: formData.icon,
           color: formData.color,
+          parentId: formData.parentId || null,
           order: maxOrder + 1
         });
 
@@ -263,6 +271,26 @@ export const CategoryManagement = () => {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="parentId">Categoría Principal (Opcional)</Label>
+                <Select value={formData.parentId} onValueChange={(value) => setFormData(prev => ({ ...prev, parentId: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona categoría principal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sin categoría principal</SelectItem>
+                    {categories.filter(cat => !cat.parentId && cat.id !== editingCategory?.id).map(category => (
+                      <SelectItem key={category.id} value={category.id}>
+                        <div className="flex items-center gap-2">
+                          {getIconComponent(category.icon)}
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="p-4 border rounded-lg">
                 <Label className="text-sm text-muted-foreground">Vista previa</Label>
                 <div className="mt-2">
@@ -308,65 +336,144 @@ export const CategoryManagement = () => {
               <p className="text-sm">Crea tu primera categoría para comenzar</p>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {categories.map((category) => (
-                <div key={category.id} className="group p-4 border rounded-lg hover:shadow-md transition-all duration-200 relative">
-                  <div className="flex items-center justify-between">
-                    <Badge className={`flex items-center gap-2 ${getColorClass(category.color)}`}>
-                      {getIconComponent(category.icon)}
-                      {category.name}
-                    </Badge>
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+            <div className="space-y-4">
+              {/* Categorías Principales */}
+              {categories.filter(cat => !cat.parentId).map((category) => {
+                const subcategories = categories.filter(sub => sub.parentId === category.id);
+                return (
+                  <div key={category.id} className="border rounded-lg p-4">
+                    <div className="group flex items-center justify-between mb-3">
+                      <Badge className={`flex items-center gap-2 ${getColorClass(category.color)}`}>
+                        {getIconComponent(category.icon)}
+                        {category.name}
+                      </Badge>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(category)}>
                           <Edit className="w-4 h-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedCategoryForSub({id: category.id, name: category.name});
+                          setSubcategoryDialogOpen(true);
+                        }}>
+                          <FolderPlus className="w-4 h-4 mr-2" />
+                          Agregar Subcategorías
+                        </DropdownMenuItem>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Eliminar
-                            </DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar categoría?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Estás a punto de eliminar la categoría "{category.name}". 
-                                Esta acción no se puede deshacer y podría afectar gastos existentes.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(category.id, category.name)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <Trash2 className="w-4 h-4 mr-2" />
                                 Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Orden: {category.order}
-                  </div>
-                </div>
-              ))}
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar categoría?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Estás a punto de eliminar la categoría "{category.name}". 
+                                  Esta acción no se puede deshacer y podría afectar gastos existentes.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(category.id, category.name)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    {/* Subcategorías */}
+                    {subcategories.length > 0 && (
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 ml-4">
+                        {subcategories.map((subcategory) => (
+                          <div key={subcategory.id} className="group p-3 border border-dashed rounded-md hover:bg-muted/50 transition-all duration-200">
+                            <div className="flex items-center justify-between">
+                              <Badge variant="outline" className={`flex items-center gap-1 text-xs ${getColorClass(subcategory.color)}`}>
+                                {getIconComponent(subcategory.icon)}
+                                {subcategory.name}
+                              </Badge>
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <MoreVertical className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEdit(subcategory)}>
+                                    <Edit className="w-3 h-3 mr-2" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                        <Trash2 className="w-3 h-3 mr-2" />
+                                        Eliminar
+                                      </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>¿Eliminar subcategoría?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Estás a punto de eliminar la subcategoría "{subcategory.name}". 
+                                          Esta acción no se puede deshacer y podría afectar gastos existentes.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDelete(subcategory.id, subcategory.name)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Eliminar
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                        ))}
+        </div>
+      )}
+
+      {subcategoryDialogOpen && selectedCategoryForSub && (
+        <SubcategorySetupDialog
+          isOpen={subcategoryDialogOpen}
+          onClose={() => {
+            setSubcategoryDialogOpen(false);
+            setSelectedCategoryForSub(null);
+          }}
+          categoryId={selectedCategoryForSub.id}
+          categoryName={selectedCategoryForSub.name}
+        />
+      )}
+    </div>
+  );
+              })}
             </div>
           )}
         </CardContent>

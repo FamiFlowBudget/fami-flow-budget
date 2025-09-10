@@ -11,6 +11,7 @@ import { NewExpenseButton } from '@/components/NewExpenseButton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { getCategoryIconById } from '@/lib/icons';
+import { getCategoryPath } from '@/utils/categoryUtils';
 
 export const ExpenseManagement = () => {
   const { expenses, categories, members, currentMember, loading, deleteExpense } = useBudgetSupabase();
@@ -124,7 +125,7 @@ export const ExpenseManagement = () => {
                             <IconComponent className="w-4 h-4" />
                           </div>
                           <div className="text-left">
-                            <CardTitle className="text-lg">{categoryData.category.name}</CardTitle>
+                            <CardTitle className="text-lg">{getCategoryPath(categoryData.category.id, categories)}</CardTitle>
                             <p className="text-sm text-muted-foreground">
                               {categoryData.memberExpenses.length} miembro(s) con gastos
                             </p>

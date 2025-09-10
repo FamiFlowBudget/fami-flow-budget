@@ -69,8 +69,9 @@ export interface DashboardKPIs {
   currency: Currency;
 }
 
-// Categorías iniciales del sistema
+// Categorías iniciales del sistema con subcategorías
 export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [
+  // Categorías principales
   { name: 'Hogar', icon: 'Home', color: 'blue', order: 1 },
   { name: 'Alimentación', icon: 'ShoppingCart', color: 'green', order: 2 },
   { name: 'Transporte', icon: 'Car', color: 'yellow', order: 3 },
@@ -83,6 +84,36 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [
   { name: 'Ahorro', icon: 'PiggyBank', color: 'emerald', order: 10 },
   { name: 'Imprevistos', icon: 'AlertTriangle', color: 'amber', order: 11 },
 ];
+
+// Subcategorías comunes por categoría principal
+export const DEFAULT_SUBCATEGORIES: Record<string, Omit<Category, 'id' | 'parentId'>[]> = {
+  'Hogar': [
+    { name: 'Arriendo', icon: 'Building', color: 'blue', order: 101 },
+    { name: 'Servicios Básicos', icon: 'Zap', color: 'blue', order: 102 },
+    { name: 'Internet y Telefonía', icon: 'Wifi', color: 'blue', order: 103 },
+    { name: 'Mantención', icon: 'Wrench', color: 'blue', order: 104 },
+    { name: 'Decoración', icon: 'Palette', color: 'blue', order: 105 },
+  ],
+  'Alimentación': [
+    { name: 'Supermercado', icon: 'ShoppingCart', color: 'green', order: 201 },
+    { name: 'Restaurantes', icon: 'Utensils', color: 'green', order: 202 },
+    { name: 'Delivery', icon: 'Truck', color: 'green', order: 203 },
+    { name: 'Panadería', icon: 'Coffee', color: 'green', order: 204 },
+  ],
+  'Transporte': [
+    { name: 'Combustible', icon: 'Fuel', color: 'yellow', order: 301 },
+    { name: 'Transporte Público', icon: 'Bus', color: 'yellow', order: 302 },
+    { name: 'Taxi/Uber', icon: 'Car', color: 'yellow', order: 303 },
+    { name: 'Mantención Vehículo', icon: 'Wrench', color: 'yellow', order: 304 },
+    { name: 'Estacionamiento', icon: 'ParkingCircle', color: 'yellow', order: 305 },
+  ],
+  'Salud': [
+    { name: 'Médico', icon: 'Stethoscope', color: 'red', order: 501 },
+    { name: 'Medicamentos', icon: 'Pill', color: 'red', order: 502 },
+    { name: 'Dental', icon: 'Smile', color: 'red', order: 503 },
+    { name: 'Óptica', icon: 'Glasses', color: 'red', order: 504 },
+  ],
+};
 
 // Formato chileno para números
 export const formatCurrency = (amount: number, currency: Currency = 'CLP'): string => {

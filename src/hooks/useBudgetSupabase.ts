@@ -514,7 +514,7 @@ export const useBudgetSupabase = () => {
           name: category.name,
           icon: category.icon,
           color: category.color,
-          parent_id: category.parentId,
+          parent_id: category.parentId || null,
           order_index: category.order
         })
         .select()

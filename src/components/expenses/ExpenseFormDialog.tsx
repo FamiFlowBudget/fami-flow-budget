@@ -188,11 +188,27 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
                 <SelectValue placeholder="Selecciona una categoría" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
+                {categories.filter(cat => !cat.parentId).map((category) => {
+                  const subcategories = categories.filter(sub => sub.parentId === category.id);
+                  return (
+                    <div key={category.id}>
+                      <SelectItem value={category.id}>
+                        <div className="flex items-center gap-2 font-medium">
+                          <span className="text-muted-foreground">📁</span>
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                      {subcategories.map((subcategory) => (
+                        <SelectItem key={subcategory.id} value={subcategory.id}>
+                          <div className="flex items-center gap-2 ml-4">
+                            <span className="text-muted-foreground">└</span>
+                            {subcategory.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </div>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

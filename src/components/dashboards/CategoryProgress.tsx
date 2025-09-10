@@ -6,6 +6,7 @@ import { BudgetProgress, formatCurrency } from '@/types/budget';
 import { Target, Eye } from 'lucide-react';
 import { getCategoryIconByName } from '@/lib/icons';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
+import { getCategoryPath } from '@/utils/categoryUtils';
 
 interface CategoryProgressProps {
   categories: BudgetProgress[];
@@ -76,7 +77,7 @@ export const CategoryProgress = ({ categories, onCategoryClick, showAll: initial
                     <IconComponent className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="font-medium text-sm">{category.categoryName}</p>
+                    <p className="font-medium text-sm">{getCategoryPath(category.categoryId, allCategories)}</p>
                     <p className="text-xs text-muted-foreground">
                       {formatCurrency(category.spentAmount)} de {formatCurrency(category.budgetAmount)}
                     </p>
