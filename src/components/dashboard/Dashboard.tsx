@@ -4,11 +4,14 @@ import { RecentExpenses } from './RecentExpenses';
 import { MonthlyTrend } from './MonthlyTrend';
 import { FamilyProgressCard } from './FamilyProgressCard';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
+import { usePeriod } from '@/providers/PeriodProvider';
 
 export const Dashboard = () => {
-  const { getDashboardKPIs, expenses, loading } = useBudgetSupabase();
+  const { getDashboardKPIs, getCategoryProgress, expenses, loading } = useBudgetSupabase();
+  const { period } = usePeriod();
   
-  const kpis = getDashboardKPIs();
+  const kpis = getDashboardKPIs(period);
+  const categoryProgress = getCategoryProgress(period);
   const recentExpenses = expenses.slice(0, 5); // Últimos 5 gastos
 
   if (loading) {
@@ -22,7 +25,7 @@ export const Dashboard = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">Dashboard</h2>
           <span className="text-sm text-muted-foreground">
-            {new Date().toLocaleDateString('es-CL', { 
+            {new Date(period.year, period.month - 1).toLocaleDateString('es-CL', { 
               month: 'long', 
               year: 'numeric' 
             })}
@@ -33,9 +36,9 @@ export const Dashboard = () => {
 
       {/* Contenido principal */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Progreso familiar por categorías */}
+        {/* Progreso por categorías actualizado */}
         <div className="animate-slide-up">
-          <FamilyProgressCard />
+          <CategoryProgress categories={categoryProgress} />
         </div>
 
         {/* Gastos recientes */}

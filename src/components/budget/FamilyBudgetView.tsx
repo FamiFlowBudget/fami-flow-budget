@@ -178,7 +178,7 @@ export const FamilyBudgetView = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="category">Categoría *</Label>
+                    <Label htmlFor="category">Categoría/Subcategoría *</Label>
                     <Select 
                       value={formData.categoryId} 
                       onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}

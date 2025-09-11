@@ -823,41 +823,98 @@ export const useBudgetSupabase = () => {
     });
   }, [expenses]);
 
-  // Calcular progreso por categoría con desglose familiar
+  // Calcular progreso por categoría con desglose familiar y subcategorías
   const getCategoryProgress = useCallback((period?: { month: number; year: number }): BudgetProgress[] => {
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
     const currentMonthExpenses = getCurrentMonthExpenses(period);
 
-    return categories.map(category => {
-      // Buscar todos los presupuestos de esta categoría para el período especificado
-      const categoryBudgets = budgets.filter(b => 
+    const results: BudgetProgress[] = [];
+
+    // Obtener todas las categorías principales
+    const mainCategories = categories.filter(cat => !cat.parentId);
+    
+    mainCategories.forEach(category => {
+      // Obtener subcategorías
+      const subcategories = categories.filter(cat => cat.parentId === category.id);
+      
+      // Calcular para la categoría principal y sus subcategorías
+      let totalBudgetAmount = 0;
+      let totalSpentAmount = 0;
+      
+      // Sumar presupuestos de la categoría principal
+      const mainCategoryBudgets = budgets.filter(b => 
         b.categoryId === category.id && 
         b.year === targetYear && 
         b.month === targetMonth
       );
-
-      // Sumar gastos de esta categoría
-      const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
-      const spentAmount = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+      totalBudgetAmount += mainCategoryBudgets.reduce((sum, b) => sum + b.amount, 0);
       
-      // Sumar presupuestos familiares
-      const budgetAmount = categoryBudgets.reduce((sum, b) => sum + b.amount, 0);
-      const percentage = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
+      // Sumar gastos de la categoría principal
+      const mainCategoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
+      totalSpentAmount += mainCategoryExpenses.reduce((sum, e) => sum + e.amount, 0);
       
-      let status: 'success' | 'warning' | 'danger' = 'success';
-      if (percentage >= 90) status = 'danger';
-      else if (percentage >= 75) status = 'warning';
+      // Sumar presupuestos y gastos de subcategorías
+      subcategories.forEach(subcategory => {
+        const subcategoryBudgets = budgets.filter(b => 
+          b.categoryId === subcategory.id && 
+          b.year === targetYear && 
+          b.month === targetMonth
+        );
+        totalBudgetAmount += subcategoryBudgets.reduce((sum, b) => sum + b.amount, 0);
+        
+        const subcategoryExpenses = currentMonthExpenses.filter(e => e.categoryId === subcategory.id);
+        totalSpentAmount += subcategoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+      });
+      
+      // Solo agregar si hay presupuesto
+      if (totalBudgetAmount > 0) {
+        const percentage = (totalSpentAmount / totalBudgetAmount) * 100;
+        let status: 'success' | 'warning' | 'danger' = 'success';
+        if (percentage >= 90) status = 'danger';
+        else if (percentage >= 75) status = 'warning';
 
-      return {
-        categoryId: category.id,
-        categoryName: category.name,
-        budgetAmount,
-        spentAmount,
-        percentage,
-        status,
-      };
-    }).filter(p => p.budgetAmount > 0); // Solo mostrar categorías con presupuesto
+        results.push({
+          categoryId: category.id,
+          categoryName: category.name,
+          budgetAmount: totalBudgetAmount,
+          spentAmount: totalSpentAmount,
+          percentage,
+          status,
+        });
+      }
+      
+      // Agregar subcategorías individualmente si tienen presupuesto
+      subcategories.forEach(subcategory => {
+        const subcategoryBudgets = budgets.filter(b => 
+          b.categoryId === subcategory.id && 
+          b.year === targetYear && 
+          b.month === targetMonth
+        );
+        const subcategoryBudgetAmount = subcategoryBudgets.reduce((sum, b) => sum + b.amount, 0);
+        
+        if (subcategoryBudgetAmount > 0) {
+          const subcategoryExpenses = currentMonthExpenses.filter(e => e.categoryId === subcategory.id);
+          const subcategorySpentAmount = subcategoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+          const subcategoryPercentage = (subcategorySpentAmount / subcategoryBudgetAmount) * 100;
+          
+          let subcategoryStatus: 'success' | 'warning' | 'danger' = 'success';
+          if (subcategoryPercentage >= 90) subcategoryStatus = 'danger';
+          else if (subcategoryPercentage >= 75) subcategoryStatus = 'warning';
+
+          results.push({
+            categoryId: subcategory.id,
+            categoryName: subcategory.name,
+            budgetAmount: subcategoryBudgetAmount,
+            spentAmount: subcategorySpentAmount,
+            percentage: subcategoryPercentage,
+            status: subcategoryStatus,
+          });
+        }
+      });
+    });
+    
+    return results.sort((a, b) => b.budgetAmount - a.budgetAmount);
   }, [categories, budgets, getCurrentMonthExpenses]);
 
   // KPIs del dashboard con totales familiares

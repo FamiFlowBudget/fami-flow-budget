@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { PaymentMethod } from '@/types/budget';
-import { Calculator, Calendar, CreditCard, Tag, User } from 'lucide-react';
+import { Calculator, Calendar, CreditCard, Tag, User, FolderOpen } from 'lucide-react';
 
 interface ExpenseFormData {
   amount: number;
   categoryId: string;
+  subcategoryId?: string;
   description: string;
   merchant?: string;
   paymentMethod: PaymentMethod;
@@ -43,6 +44,7 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
       paymentMethod: expenseToEdit?.paymentMethod || 'debit',
       amount: expenseToEdit?.amount || 0,
       categoryId: expenseToEdit?.categoryId || '',
+      subcategoryId: '',
       description: expenseToEdit?.description || '',
       merchant: expenseToEdit?.merchant || '',
       memberId: expenseToEdit?.memberId || '',
@@ -52,6 +54,57 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
   const { addExpense, updateExpense, categories, currentMember, members, currency } = useBudgetSupabase();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedMainCategory, setSelectedMainCategory] = useState('');
+  const [availableSubcategories, setAvailableSubcategories] = useState<any[]>([]);
+
+  const watchedCategoryId = watch('categoryId');
+
+  // Update subcategories when main category changes
+  useEffect(() => {
+    if (watchedCategoryId) {
+      const mainCategory = categories.find(cat => cat.id === watchedCategoryId && !cat.parentId);
+      if (mainCategory) {
+        setSelectedMainCategory(mainCategory.id);
+        const subcategories = categories.filter(cat => cat.parentId === mainCategory.id);
+        setAvailableSubcategories(subcategories);
+        setValue('subcategoryId', '');
+      } else {
+        // If selected category is a subcategory, find its parent
+        const subcategory = categories.find(cat => cat.id === watchedCategoryId && cat.parentId);
+        if (subcategory) {
+          setSelectedMainCategory(subcategory.parentId);
+          setValue('categoryId', subcategory.parentId);
+          setValue('subcategoryId', subcategory.id);
+          const subcategories = categories.filter(cat => cat.parentId === subcategory.parentId);
+          setAvailableSubcategories(subcategories);
+        }
+      }
+    }
+  }, [watchedCategoryId, categories, setValue]);
+
+  // Initialize form with existing expense data
+  useEffect(() => {
+    if (expenseToEdit) {
+      const expense = expenseToEdit;
+      const expenseCategory = categories.find(cat => cat.id === expense.categoryId);
+      
+      if (expenseCategory?.parentId) {
+        // It's a subcategory
+        setSelectedMainCategory(expenseCategory.parentId);
+        setValue('categoryId', expenseCategory.parentId);
+        setValue('subcategoryId', expenseCategory.id);
+        const subcategories = categories.filter(cat => cat.parentId === expenseCategory.parentId);
+        setAvailableSubcategories(subcategories);
+      } else {
+        // It's a main category
+        setSelectedMainCategory(expense.categoryId);
+        setValue('categoryId', expense.categoryId);
+        setValue('subcategoryId', '');
+        const subcategories = categories.filter(cat => cat.parentId === expense.categoryId);
+        setAvailableSubcategories(subcategories);
+      }
+    }
+  }, [expenseToEdit, categories, setValue]);
 
   const onSubmit = async (data: ExpenseFormData) => {
     if (!currentMember) {
@@ -65,12 +118,15 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
 
     // Determinar el miembro: si es admin y seleccionó uno, usar ese; sino, usar el currentMember
     const targetMemberId = (currentMember.role === 'admin' && data.memberId) ? data.memberId : currentMember.id;
+    
+    // Determinar la categoría final: subcategoría si está seleccionada, sino categoría principal
+    const finalCategoryId = data.subcategoryId || data.categoryId;
 
     setIsSubmitting(true);
     try {
       if (expenseToEdit) {
         await updateExpense(expenseToEdit.id, {
-          categoryId: data.categoryId,
+          categoryId: finalCategoryId,
           amount: data.amount,
           description: data.description,
           merchant: data.merchant,
@@ -85,7 +141,7 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
       } else {
         await addExpense({
           memberId: targetMemberId,
-          categoryId: data.categoryId,
+          categoryId: finalCategoryId,
           amount: data.amount,
           currency,
           description: data.description,
@@ -116,6 +172,8 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
 
   const handleClose = () => {
     reset();
+    setSelectedMainCategory('');
+    setAvailableSubcategories([]);
     onClose();
   };
 
@@ -177,38 +235,58 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
             </div>
           )}
 
-          {/* Categoría */}
+          {/* Categoría Principal */}
           <div className="space-y-2">
             <Label className="flex items-center space-x-2">
               <Tag className="h-4 w-4" />
-              <span>Categoría *</span>
+              <span>Categoría Principal *</span>
             </Label>
-            <Select onValueChange={(value) => setValue('categoryId', value)} defaultValue={expenseToEdit?.categoryId}>
+            <Select onValueChange={(value) => setValue('categoryId', value)} value={watchedCategoryId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona una categoría" />
               </SelectTrigger>
               <SelectContent>
-                {categories.filter(cat => !cat.parentId).map((category) => {
-                  const subcategories = categories.filter(sub => sub.parentId === category.id);
-                  return (
-                    <div key={category.id}>
-                      <SelectItem value={category.id}>
-                        <div className="flex items-center gap-2 font-medium">
-                          <span className="text-muted-foreground">📁</span>
-                          {category.name}
-                        </div>
-                      </SelectItem>
-                      {subcategories.map((subcategory) => (
-                        <SelectItem key={subcategory.id} value={subcategory.id}>
-                          <div className="flex items-center gap-2 ml-4">
-                            <span className="text-muted-foreground">└</span>
-                            {subcategory.name}
-                          </div>
-                        </SelectItem>
-                      ))}
+                {categories.filter(cat => !cat.parentId).map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">📁</span>
+                      {category.name}
                     </div>
-                  );
-                })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Subcategoría */}
+          <div className="space-y-2">
+            <Label className="flex items-center space-x-2">
+              <FolderOpen className="h-4 w-4" />
+              <span>Subcategoría</span>
+            </Label>
+            <Select 
+              onValueChange={(value) => setValue('subcategoryId', value)} 
+              value={watch('subcategoryId')}
+              disabled={!selectedMainCategory}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={selectedMainCategory ? "Selecciona una subcategoría" : "Primero selecciona una categoría"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">∅</span>
+                    Ninguna
+                  </div>
+                </SelectItem>
+                {availableSubcategories.map((subcategory) => (
+                  <SelectItem key={subcategory.id} value={subcategory.id}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">└</span>
+                      {subcategory.name}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
