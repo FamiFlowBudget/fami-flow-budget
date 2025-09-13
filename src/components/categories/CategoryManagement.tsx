@@ -212,7 +212,7 @@ export const CategoryManagement = () => {
                 Nueva Categoría
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
@@ -300,6 +300,52 @@ export const CategoryManagement = () => {
                   </Badge>
                 </div>
               </div>
+
+              {/* Subcategories Section - Only show when editing and it's a main category */}
+              {editingCategory && !editingCategory.parentId && (
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-sm font-medium">Subcategorías</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSubcategoryDialogOpen(true);
+                        setSelectedCategoryForSub({id: editingCategory.id, name: editingCategory.name});
+                      }}
+                      className="flex items-center gap-1"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Agregar
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {categories.filter(sub => sub.parentId === editingCategory.id).map(subcategory => (
+                      <div key={subcategory.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                        <Badge variant="outline" className={`flex items-center gap-1 text-xs ${getColorClass(subcategory.color)}`}>
+                          {getIconComponent(subcategory.icon)}
+                          {subcategory.name}
+                        </Badge>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEdit(subcategory)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    {categories.filter(sub => sub.parentId === editingCategory.id).length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">
+                        No hay subcategorías. Haz clic en "Agregar" para crear algunas.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => {
