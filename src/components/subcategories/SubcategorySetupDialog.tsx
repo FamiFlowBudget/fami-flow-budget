@@ -23,7 +23,11 @@ export const SubcategorySetupDialog = ({ isOpen, onClose, categoryId, categoryNa
   const [selectedSubcategories, setSelectedSubcategories] = useState<Set<string>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
 
-  const subcategoriesForCategory = DEFAULT_SUBCATEGORIES[categoryName] || [];
+  // Find subcategories by exact match or similar name
+  const subcategoriesForCategory = DEFAULT_SUBCATEGORIES[categoryName] || 
+    DEFAULT_SUBCATEGORIES[Object.keys(DEFAULT_SUBCATEGORIES).find(key => 
+      key.toLowerCase() === categoryName.toLowerCase()
+    ) || ''] || [];
 
   const getIconComponent = (iconName: string) => {
     const IconComponent = (Icons as any)[iconName] || Icons.Tag;
@@ -104,7 +108,27 @@ export const SubcategorySetupDialog = ({ isOpen, onClose, categoryId, categoryNa
   };
 
   if (subcategoriesForCategory.length === 0) {
-    return null;
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FolderPlus className="h-5 w-5" />
+              Sin subcategorías disponibles
+            </DialogTitle>
+            <DialogDescription>
+              No hay subcategorías predefinidas disponibles para la categoría "{categoryName}". 
+              Puedes crear subcategorías manualmente desde el formulario de categorías.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={onClose}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   return (

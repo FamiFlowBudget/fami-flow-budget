@@ -456,28 +456,28 @@ export const CategoryManagement = () => {
                               </DropdownMenu>
                             </div>
                           </div>
-                        ))}
-        </div>
-      )}
+                         ))}
+                       </div>
+                     )}
+                   </div>
+                 );
+               })}
+             </div>
+           )}
+         </CardContent>
+       </Card>
 
-      {subcategoryDialogOpen && selectedCategoryForSub && (
-        <SubcategorySetupDialog
-          isOpen={subcategoryDialogOpen}
-          onClose={() => {
-            setSubcategoryDialogOpen(false);
-            setSelectedCategoryForSub(null);
-          }}
-          categoryId={selectedCategoryForSub.id}
-          categoryName={selectedCategoryForSub.name}
-        />
-      )}
-    </div>
-  );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
+       {subcategoryDialogOpen && selectedCategoryForSub && (
+         <SubcategorySetupDialog
+           isOpen={subcategoryDialogOpen}
+           onClose={() => {
+             setSubcategoryDialogOpen(false);
+             setSelectedCategoryForSub(null);
+           }}
+           categoryId={selectedCategoryForSub.id}
+           categoryName={selectedCategoryForSub.name}
+         />
+       )}
+     </div>
+   );
+ };
