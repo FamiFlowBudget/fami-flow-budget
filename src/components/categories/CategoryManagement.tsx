@@ -67,7 +67,7 @@ export const CategoryManagement = () => {
     name: '',
     icon: 'Tag',
     color: 'blue',
-    parentId: ''
+    parentId: 'none'
   });
 
   const resetForm = () => {
@@ -75,7 +75,7 @@ export const CategoryManagement = () => {
       name: '',
       icon: 'Tag',
       color: 'blue',
-      parentId: ''
+      parentId: 'none'
     });
     setEditingCategory(null);
   };
@@ -86,7 +86,7 @@ export const CategoryManagement = () => {
       name: category.name,
       icon: category.icon,
       color: category.color,
-      parentId: category.parentId || ''
+      parentId: category.parentId || 'none'
     });
     setDialogOpen(true);
   };
@@ -117,7 +117,7 @@ export const CategoryManagement = () => {
           name: formData.name,
           icon: formData.icon,
           color: formData.color,
-          parentId: formData.parentId || null
+          parentId: formData.parentId === 'none' ? null : formData.parentId
         });
 
         toast({
@@ -132,7 +132,7 @@ export const CategoryManagement = () => {
           name: formData.name,
           icon: formData.icon,
           color: formData.color,
-          parentId: formData.parentId || null,
+          parentId: formData.parentId === 'none' ? null : formData.parentId,
           order: maxOrder + 1
         });
 
@@ -278,7 +278,7 @@ export const CategoryManagement = () => {
                     <SelectValue placeholder="Selecciona categoría principal" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin categoría principal</SelectItem>
+                    <SelectItem value="none">Sin categoría principal</SelectItem>
                     {categories.filter(cat => !cat.parentId && cat.id !== editingCategory?.id).map(category => (
                       <SelectItem key={category.id} value={category.id}>
                         <div className="flex items-center gap-2">
