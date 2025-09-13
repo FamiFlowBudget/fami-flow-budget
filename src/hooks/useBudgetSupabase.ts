@@ -823,7 +823,7 @@ export const useBudgetSupabase = () => {
     });
   }, [expenses]);
 
-  // Calcular progreso por categoría con desglose familiar y subcategorías
+  // Calcular progreso por categoría con desglose familiar y subcategorías (versión plana)
   const getCategoryProgress = useCallback((period?: { month: number; year: number }): BudgetProgress[] => {
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
@@ -912,6 +912,100 @@ export const useBudgetSupabase = () => {
           });
         }
       });
+    });
+    
+    return results.sort((a, b) => b.budgetAmount - a.budgetAmount);
+  }, [categories, budgets, getCurrentMonthExpenses]);
+
+  // Progreso por categoría con estructura jerárquica para dashboard
+  const getCategoryProgressHierarchical = useCallback((period?: { month: number; year: number }) => {
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
+
+    const results: Array<{
+      categoryId: string;
+      categoryName: string;
+      budgetAmount: number;
+      spentAmount: number;
+      percentage: number;
+      status: 'success' | 'warning' | 'danger';
+      subcategories: Array<{
+        categoryId: string;
+        categoryName: string;
+        budgetAmount: number;
+        spentAmount: number;
+        percentage: number;
+        status: 'success' | 'warning' | 'danger';
+      }>;
+    }> = [];
+
+    // Obtener todas las categorías principales
+    const mainCategories = categories.filter(cat => !cat.parentId);
+    
+    mainCategories.forEach(category => {
+      // Obtener subcategorías
+      const subcategories = categories.filter(cat => cat.parentId === category.id);
+      
+      // Calcular para la categoría principal (solo sus gastos directos)
+      const mainCategoryBudgets = budgets.filter(b => 
+        b.categoryId === category.id && 
+        b.year === targetYear && 
+        b.month === targetMonth
+      );
+      let mainCategoryBudgetAmount = mainCategoryBudgets.reduce((sum, b) => sum + b.amount, 0);
+      
+      const mainCategoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
+      let mainCategorySpentAmount = mainCategoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+      
+      // Calcular subcategorías
+      const subcategoryData = subcategories.map(subcategory => {
+        const subcategoryBudgets = budgets.filter(b => 
+          b.categoryId === subcategory.id && 
+          b.year === targetYear && 
+          b.month === targetMonth
+        );
+        const subcategoryBudgetAmount = subcategoryBudgets.reduce((sum, b) => sum + b.amount, 0);
+        
+        const subcategoryExpenses = currentMonthExpenses.filter(e => e.categoryId === subcategory.id);
+        const subcategorySpentAmount = subcategoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const subcategoryPercentage = subcategoryBudgetAmount > 0 ? (subcategorySpentAmount / subcategoryBudgetAmount) * 100 : 0;
+        
+        let subcategoryStatus: 'success' | 'warning' | 'danger' = 'success';
+        if (subcategoryPercentage >= 90) subcategoryStatus = 'danger';
+        else if (subcategoryPercentage >= 75) subcategoryStatus = 'warning';
+
+        // Sumar al total de la categoría principal
+        mainCategoryBudgetAmount += subcategoryBudgetAmount;
+        mainCategorySpentAmount += subcategorySpentAmount;
+
+        return {
+          categoryId: subcategory.id,
+          categoryName: subcategory.name,
+          budgetAmount: subcategoryBudgetAmount,
+          spentAmount: subcategorySpentAmount,
+          percentage: subcategoryPercentage,
+          status: subcategoryStatus,
+        };
+      }).filter(sub => sub.budgetAmount > 0);
+      
+      // Solo agregar si hay presupuesto total
+      if (mainCategoryBudgetAmount > 0) {
+        const percentage = (mainCategorySpentAmount / mainCategoryBudgetAmount) * 100;
+        let status: 'success' | 'warning' | 'danger' = 'success';
+        if (percentage >= 90) status = 'danger';
+        else if (percentage >= 75) status = 'warning';
+
+        results.push({
+          categoryId: category.id,
+          categoryName: category.name,
+          budgetAmount: mainCategoryBudgetAmount,
+          spentAmount: mainCategorySpentAmount,
+          percentage,
+          status,
+          subcategories: subcategoryData,
+        });
+      }
     });
     
     return results.sort((a, b) => b.budgetAmount - a.budgetAmount);
@@ -1089,6 +1183,7 @@ export const useBudgetSupabase = () => {
     // Computed
     getCurrentMonthExpenses,
     getCategoryProgress,
+    getCategoryProgressHierarchical,
     getDashboardKPIs,
     getFamilyDataByCategory,
     getYearTrendData,

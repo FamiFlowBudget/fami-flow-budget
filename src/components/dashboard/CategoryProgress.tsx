@@ -3,6 +3,8 @@ import { Progress } from '@/components/ui/progress';
 import { BudgetProgress, formatCurrency } from '@/types/budget';
 import { getCategoryIconByName } from '@/lib/icons';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
+import { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface CategoryProgressProps {
   categories: BudgetProgress[];
@@ -18,9 +20,23 @@ const Target = ({ className }: { className?: string }) => (
 );
 
 export const CategoryProgress = ({ categories }: CategoryProgressProps) => {
-  const { categories: allCategories } = useBudgetSupabase();
+  const { categories: allCategories, getCategoryProgressHierarchical } = useBudgetSupabase();
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  
+  // Usar datos jerárquicos para el dashboard
+  const hierarchicalData = getCategoryProgressHierarchical();
 
-  if (categories.length === 0) {
+  const toggleCategory = (categoryId: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  if (hierarchicalData.length === 0) {
     return (
       <Card className="p-6 text-center">
         <div className="text-muted-foreground">
@@ -36,49 +52,119 @@ export const CategoryProgress = ({ categories }: CategoryProgressProps) => {
     <Card className="p-6">
       <h3 className="font-semibold text-lg mb-4">Progreso por Categoría</h3>
       <div className="space-y-4">
-        {categories.map((category) => {
+        {hierarchicalData.map((category) => {
           const IconComponent = getCategoryIconByName(category.categoryName, allCategories);
+          const isExpanded = expandedCategories.has(category.categoryId);
+          const hasSubcategories = category.subcategories.length > 0;
           
           return (
             <div key={category.categoryId} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${{
-                    success: 'bg-success/10 text-success',
-                    warning: 'bg-warning/10 text-warning', 
-                    danger: 'bg-destructive/10 text-destructive'
-                  }[category.status]}`}>
-                    <IconComponent className="h-4 w-4" />
+              {/* Categoría Principal */}
+              <div 
+                className={`space-y-2 ${hasSubcategories ? 'cursor-pointer' : ''}`}
+                onClick={hasSubcategories ? () => toggleCategory(category.categoryId) : undefined}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    {hasSubcategories && (
+                      <div className="flex items-center">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    )}
+                    <div className={`p-2 rounded-lg ${{
+                      success: 'bg-success/10 text-success',
+                      warning: 'bg-warning/10 text-warning', 
+                      danger: 'bg-destructive/10 text-destructive'
+                    }[category.status]}`}>
+                      <IconComponent className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{category.categoryName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(category.spentAmount)} de {formatCurrency(category.budgetAmount)}
+                        {hasSubcategories && ` (${category.subcategories.length} subcategorías)`}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">{category.categoryName}</p>
+                  <div className="text-right">
+                    <span className={`text-sm font-bold ${{
+                      success: 'text-success',
+                      warning: 'text-warning', 
+                      danger: 'text-destructive'
+                    }[category.status]}`}>
+                      {category.percentage.toFixed(1)}%
+                    </span>
                     <p className="text-xs text-muted-foreground">
-                      {formatCurrency(category.spentAmount)} de {formatCurrency(category.budgetAmount)}
+                      {formatCurrency(category.budgetAmount - category.spentAmount)} disponible
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className={`text-sm font-bold ${{
-                    success: 'text-success',
-                    warning: 'text-warning', 
-                    danger: 'text-destructive'
-                  }[category.status]}`}>
-                    {category.percentage.toFixed(1)}%
-                  </span>
-                  <p className="text-xs text-muted-foreground">
-                    {formatCurrency(category.budgetAmount - category.spentAmount)} disponible
-                  </p>
-                </div>
+                
+                <Progress 
+                  value={Math.min(category.percentage, 100)}
+                  className={`h-2 ${{
+                    success: 'progress-success',
+                    warning: 'progress-warning',
+                    danger: 'progress-danger'
+                  }[category.status]}`}
+                />
               </div>
-              
-              <Progress 
-                value={Math.min(category.percentage, 100)}
-                className={`h-2 ${{
-                  success: 'progress-success',
-                  warning: 'progress-warning',
-                  danger: 'progress-danger'
-                }[category.status]}`}
-              />
+
+              {/* Subcategorías expandidas */}
+              {isExpanded && hasSubcategories && (
+                <div className="ml-8 space-y-3 border-l-2 border-muted pl-4">
+                  {category.subcategories.map((subcategory) => {
+                    const SubIconComponent = getCategoryIconByName(subcategory.categoryName, allCategories);
+                    
+                    return (
+                      <div key={subcategory.categoryId} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-1.5 rounded-lg ${{
+                              success: 'bg-success/10 text-success',
+                              warning: 'bg-warning/10 text-warning', 
+                              danger: 'bg-destructive/10 text-destructive'
+                            }[subcategory.status]}`}>
+                              <SubIconComponent className="h-3 w-3" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-xs">{subcategory.categoryName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatCurrency(subcategory.spentAmount)} de {formatCurrency(subcategory.budgetAmount)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-xs font-bold ${{
+                              success: 'text-success',
+                              warning: 'text-warning', 
+                              danger: 'text-destructive'
+                            }[subcategory.status]}`}>
+                              {subcategory.percentage.toFixed(1)}%
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              {formatCurrency(subcategory.budgetAmount - subcategory.spentAmount)} disponible
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <Progress 
+                          value={Math.min(subcategory.percentage, 100)}
+                          className={`h-1.5 ${{
+                            success: 'progress-success',
+                            warning: 'progress-warning',
+                            danger: 'progress-danger'
+                          }[subcategory.status]}`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}
