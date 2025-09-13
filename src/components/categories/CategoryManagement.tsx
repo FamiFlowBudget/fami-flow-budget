@@ -20,7 +20,7 @@ const iconOptions = [
   // Transporte
   'Car', 'Bus', 'Train', 'Plane', 'Bike', 'Motorcycle', 'Truck', 'Ship', 'Taxi', 'CarTaxiFront',
   // Alimentación y Compras
-  'ShoppingCart', 'ShoppingBag', 'Store', 'Pizza', 'Coffee', 'Utensils', 'ChefHat', 'Sandwich', 'Salad', 'IceCream',
+  'ShoppingCart', 'ShoppingBag', 'Pizza', 'Coffee', 'Utensils', 'ChefHat', 'Sandwich', 'Salad', 'IceCream',
   // Salud y Bienestar
   'Heart', 'Stethoscope', 'Pill', 'Activity', 'Dumbbell', 'Zap', 'Plus', 'Cross', 'Thermometer',
   // Educación y Trabajo
@@ -36,19 +36,19 @@ const iconOptions = [
   // Mascotas y Animales
   'Dog', 'Cat', 'Fish', 'Bird', 'Rabbit', 'Turtle', 'Bug',
   // Tecnología
-  'Smartphone', 'Tablet', 'Computer', 'Keyboard', 'Mouse', 'Headphones', 'Speaker', 'Wifi', 'Battery',
+  'Smartphone', 'Tablet', 'Computer', 'Keyboard', 'Mouse', 'Speaker', 'Wifi', 'Battery',
   // Servicios
-  'Zap', 'Droplets', 'Flame', 'Wind', 'Sun', 'Cloud', 'Wifi', 'Phone', 'Mail', 'MessageCircle',
+  'Droplets', 'Flame', 'Wind', 'Sun', 'Cloud', 'Phone', 'Mail', 'MessageCircle',
   // Deportes y Fitness
-  'Dumbbell', 'Activity', 'Award', 'Trophy', 'Medal', 'Target', 'Crosshair', 'Mountain', 'Waves',
+  'Award', 'Trophy', 'Medal', 'Crosshair', 'Mountain', 'Waves',
   // Viajes y Ocio
-  'MapPin', 'Map', 'Compass', 'Luggage', 'Tent', 'Palmtree', 'Umbrella', 'Camera', 'Binoculars',
+  'MapPin', 'Map', 'Compass', 'Luggage', 'Tent', 'Palmtree', 'Umbrella', 'Binoculars',
   // Herramientas y Mantenimiento
   'Wrench', 'Hammer', 'Screwdriver', 'Settings', 'Cog', 'Tool', 'HardHat',
   // Regalos y Ocasiones Especiales
-  'Gift', 'GiftBox', 'Cake', 'PartyPopper', 'Balloon', 'Heart', 'Star', 'Sparkles', 'Crown',
+  'Gift', 'GiftBox', 'Cake', 'Balloon', 'Star',
   // Otros
-  'Tag', 'Folder', 'Archive', 'Package', 'Box', 'Circle', 'Square', 'Triangle', 'Hexagon', 'Star'
+  'Tag', 'Folder', 'Archive', 'Package', 'Box', 'Circle', 'Square', 'Triangle', 'Hexagon'
 ];
 
 const colorOptions = [
@@ -310,9 +310,12 @@ export const CategoryManagement = () => {
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        setSubcategoryDialogOpen(true);
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Opening subcategory dialog for:', editingCategory.name);
                         setSelectedCategoryForSub({id: editingCategory.id, name: editingCategory.name});
+                        setSubcategoryDialogOpen(true);
                       }}
                       className="flex items-center gap-1"
                     >
@@ -513,17 +516,19 @@ export const CategoryManagement = () => {
          </CardContent>
        </Card>
 
-       {subcategoryDialogOpen && selectedCategoryForSub && (
-         <SubcategorySetupDialog
-           isOpen={subcategoryDialogOpen}
-           onClose={() => {
-             setSubcategoryDialogOpen(false);
-             setSelectedCategoryForSub(null);
-           }}
-           categoryId={selectedCategoryForSub.id}
-           categoryName={selectedCategoryForSub.name}
-         />
-       )}
+      {/* Subcategory Dialog - Positioned outside main dialog to avoid nesting issues */}
+      {subcategoryDialogOpen && selectedCategoryForSub && (
+        <SubcategorySetupDialog
+          isOpen={subcategoryDialogOpen}
+          onClose={() => {
+            console.log('Closing subcategory dialog');
+            setSubcategoryDialogOpen(false);
+            setSelectedCategoryForSub(null);
+          }}
+          categoryId={selectedCategoryForSub.id}
+          categoryName={selectedCategoryForSub.name}
+        />
+      )}
      </div>
    );
  };
