@@ -188,17 +188,49 @@ export const MonthlyBudgetView = ({ selectedMembers, onEditBudget, onDeleteBudge
                                     <span className="text-sm font-medium">
                                       {formatCurrency(memberBudget.mainCategoryAmount)}
                                     </span>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm"
-                                      onClick={() => onEditBudget(
-                                        categoryData.category.id, 
-                                        memberBudget.member.id, 
-                                        memberBudget.budget
+                                    <div className="flex gap-1">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => onEditBudget(
+                                          categoryData.category.id, 
+                                          memberBudget.member.id, 
+                                          memberBudget.budget
+                                        )}
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </Button>
+                                      {currentMember?.role === 'admin' && memberBudget.budget && onDeleteBudget && (
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button 
+                                              variant="ghost" 
+                                              size="sm"
+                                              className="text-destructive hover:text-destructive"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>¿Eliminar presupuesto?</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Esta acción eliminará el presupuesto de {formatCurrency(memberBudget.mainCategoryAmount)} para {memberBudget.member.name} en {categoryData.category.name}.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction 
+                                                onClick={() => onDeleteBudget(memberBudget.budget.id, categoryData.category.name, memberBudget.member.name)}
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                              >
+                                                Eliminar
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
                                       )}
-                                    >
-                                      <Edit className="w-3 h-3" />
-                                    </Button>
+                                    </div>
                                   </div>
                                 </div>
                               ))}
