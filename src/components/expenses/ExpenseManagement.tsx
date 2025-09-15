@@ -173,23 +173,25 @@ export const ExpenseManagement = () => {
                                       {formatCurrency(expense.amount)}
                                     </span>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => setEditingExpense({
-                                          id: expense.id,
-                                          amount: expense.amount,
-                                          categoryId: expense.categoryId,
-                                          description: expense.description,
-                                          merchant: expense.merchant,
-                                          paymentMethod: expense.paymentMethod,
-                                          date: expense.date,
-                                          memberId: expense.memberId
-                                        })}
-                                        className="p-1 h-auto"
-                                      >
-                                        <Edit2 className="h-3 w-3" />
-                                      </Button>
+                                      {(currentMember?.role === 'admin' || expense.memberId === currentMember?.id) && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => setEditingExpense({
+                                            id: expense.id,
+                                            amount: expense.amount,
+                                            categoryId: expense.categoryId,
+                                            description: expense.description,
+                                            merchant: expense.merchant,
+                                            paymentMethod: expense.paymentMethod,
+                                            date: expense.date,
+                                            memberId: expense.memberId
+                                          })}
+                                          className="p-1 h-auto"
+                                        >
+                                          <Edit2 className="h-3 w-3" />
+                                        </Button>
+                                      )}
                                       {currentMember?.role === 'admin' && (
                                         <AlertDialog>
                                           <AlertDialogTrigger asChild>
