@@ -364,6 +364,7 @@ export const useFamilies = () => {
     try {
       setLoading(true);
 
+      const token = crypto.randomUUID();
       const { data, error } = await supabase
         .from('invitations')
         .insert({
@@ -373,17 +374,97 @@ export const useFamilies = () => {
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 días
           uses_remaining: 1,
           created_by: user!.id,
-          token: crypto.randomUUID() // Generar token único
+          token
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      toast({
-        title: "Invitación creada",
-        description: `Se ha creado una invitación para ${email}`
-      });
+      // Enviar email de invitación via SMTP
+      try {
+        const inviteUrl = `${window.location.origin}/join?token=${token}`;
+        const emailHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { text-align: center; margin-bottom: 30px; }
+              .button { 
+                display: inline-block; 
+                padding: 12px 24px; 
+                background-color: #007bff; 
+                color: white; 
+                text-decoration: none; 
+                border-radius: 5px;
+                margin: 20px 0;
+              }
+              .footer { margin-top: 30px; font-size: 12px; color: #666; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Invitación a FamiFlow</h1>
+              </div>
+              
+              <p>¡Hola!</p>
+              
+              <p>Has sido invitado/a a unirte a la familia "<strong>${currentFamily.name}</strong>" en FamiFlow.</p>
+              
+              <p>Tu rol asignado será: <strong>${role === 'viewer' ? 'Visitante' : role === 'editor' ? 'Editor' : 'Administrador'}</strong></p>
+              
+              <div style="text-align: center;">
+                <a href="${inviteUrl}" class="button">Aceptar Invitación</a>
+              </div>
+              
+              <p>O copia y pega este enlace en tu navegador:</p>
+              <p style="word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 5px;">
+                ${inviteUrl}
+              </p>
+              
+              <p><small>Esta invitación expira en 7 días.</small></p>
+              
+              <div class="footer">
+                <p>Si no esperabas esta invitación, puedes ignorar este correo.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `;
+
+        const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-smtp-email', {
+          body: {
+            to: email,
+            subject: `Invitación para unirte a ${currentFamily.name} en FamiFlow`,
+            html: emailHtml
+          }
+        });
+
+        if (emailError) {
+          console.error('Error sending invitation email:', emailError);
+          toast({
+            variant: "destructive",
+            title: "Invitación creada",
+            description: "La invitación fue creada pero no se pudo enviar el email"
+          });
+        } else {
+          toast({
+            title: "Invitación enviada",
+            description: `Se ha enviado una invitación por email a ${email}`
+          });
+        }
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
+        toast({
+          variant: "destructive",
+          title: "Invitación creada",
+          description: "La invitación fue creada pero no se pudo enviar el email"
+        });
+      }
 
       return { data };
     } catch (error: any) {
