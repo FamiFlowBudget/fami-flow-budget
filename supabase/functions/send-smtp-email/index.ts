@@ -18,8 +18,20 @@ async function sendSMTPEmail(emailData: EmailRequest) {
   const smtpUser = Deno.env.get("SMTP_USER");
   const smtpPassword = Deno.env.get("SMTP_PASSWORD");
 
+  console.log("SMTP Configuration check:", {
+    host: smtpHost ? "✓ configured" : "✗ missing",
+    port: smtpPort,
+    user: smtpUser ? "✓ configured" : "✗ missing", 
+    password: smtpPassword ? "✓ configured" : "✗ missing"
+  });
+
   if (!smtpHost || !smtpUser || !smtpPassword) {
-    throw new Error("SMTP credentials not configured");
+    const missingCredentials = [];
+    if (!smtpHost) missingCredentials.push("SMTP_HOST");
+    if (!smtpUser) missingCredentials.push("SMTP_USER");
+    if (!smtpPassword) missingCredentials.push("SMTP_PASSWORD");
+    
+    throw new Error(`SMTP credentials not configured. Missing: ${missingCredentials.join(", ")}`);
   }
 
   // Create SMTP connection
