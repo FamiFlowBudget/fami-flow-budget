@@ -28,7 +28,7 @@ export const FamilyManagement = () => {
   const { toast } = useToast();
   
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('viewer');
+  const [inviteRole, setInviteRole] = useState('visitor');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [editingFamilyName, setEditingFamilyName] = useState('');
   const [editingFamily, setEditingFamily] = useState(false);
@@ -52,7 +52,7 @@ export const FamilyManagement = () => {
     const result = await createInvitation(inviteEmail, inviteRole);
     if (result && !result.error) {
       setInviteEmail('');
-      setInviteRole('viewer');
+      setInviteRole('visitor');
       setInviteDialogOpen(false);
     }
   };
@@ -63,7 +63,7 @@ export const FamilyManagement = () => {
         return <Shield className="h-4 w-4" />;
       case 'editor':
         return <Edit className="h-4 w-4" />;
-      case 'viewer':
+      case 'visitor':
         return <Eye className="h-4 w-4" />;
       default:
         return <Users className="h-4 w-4" />;
@@ -76,7 +76,7 @@ export const FamilyManagement = () => {
         return 'Administrador';
       case 'editor':
         return 'Editor';
-      case 'viewer':
+      case 'visitor':
         return 'Visitante';
       default:
         return role;
@@ -89,7 +89,7 @@ export const FamilyManagement = () => {
         return 'destructive';
       case 'editor':
         return 'default';
-      case 'viewer':
+      case 'visitor':
         return 'secondary';
       default:
         return 'outline';
@@ -262,9 +262,9 @@ export const FamilyManagement = () => {
                 </div>
               )}
             </div>
-            <Badge variant={getRoleColor(currentFamily.userRole || 'viewer')}>
-              {getRoleIcon(currentFamily.userRole || 'viewer')}
-              <span className="ml-1">{getRoleName(currentFamily.userRole || 'viewer')}</span>
+            <Badge variant={getRoleColor(currentFamily.userRole || 'visitor')}>
+              {getRoleIcon(currentFamily.userRole || 'visitor')}
+              <span className="ml-1">{getRoleName(currentFamily.userRole || 'visitor')}</span>
             </Badge>
           </div>
         </CardHeader>
@@ -313,7 +313,7 @@ export const FamilyManagement = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="viewer">Visitante</SelectItem>
+                          <SelectItem value="visitor">Visitante</SelectItem>
                           <SelectItem value="editor">Editor</SelectItem>
                           <SelectItem value="admin">Administrador</SelectItem>
                         </SelectContent>
@@ -607,7 +607,7 @@ export const FamilyManagement = () => {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction 
-                            onClick={() => handleJoinRequest(request.id, 'approved', 'viewer')}
+                            onClick={() => handleJoinRequest(request.id, 'approved', 'visitor')}
                           >
                             Aprobar
                           </AlertDialogAction>

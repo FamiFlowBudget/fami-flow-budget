@@ -10,7 +10,7 @@ export interface Family {
   currency: string;
   timezone: string;
   created_at: string;
-  userRole?: 'admin' | 'editor' | 'viewer';
+  userRole?: 'admin' | 'editor' | 'visitor';
 }
 
 export interface FamilyMember {
@@ -18,7 +18,7 @@ export interface FamilyMember {
   user_id: string;
   name: string;
   email?: string;
-  role: 'admin' | 'editor' | 'viewer';
+  role: 'admin' | 'editor' | 'visitor';
   photo_url?: string;
   active: boolean;
   family_id?: string;
@@ -89,7 +89,7 @@ export const useFamilies = () => {
         currency: uf.families.currency,
         timezone: uf.families.timezone,
         created_at: uf.families.created_at,
-        userRole: uf.role as 'admin' | 'editor' | 'viewer'
+        userRole: uf.role as 'admin' | 'editor' | 'visitor'
       }));
 
       setFamilies(familiesWithRole);
@@ -261,7 +261,7 @@ export const useFamilies = () => {
   };
 
   // Aprobar/rechazar solicitud de unión
-  const handleJoinRequest = async (requestId: string, action: 'approved' | 'rejected', role: string = 'viewer') => {
+  const handleJoinRequest = async (requestId: string, action: 'approved' | 'rejected', role: string = 'visitor') => {
     if (!user) return;
 
     try {
@@ -297,7 +297,7 @@ export const useFamilies = () => {
             family_id: requestData.family_id,
             name: requestData.email.split('@')[0],
             email: requestData.email,
-            role: role as 'admin' | 'editor' | 'viewer',
+            role: role as 'admin' | 'editor' | 'visitor',
             active: true
           });
 
@@ -350,7 +350,7 @@ export const useFamilies = () => {
       if (error) throw error;
       setFamilyMembers((data || []).map(member => ({
         ...member,
-        role: member.role as 'admin' | 'editor' | 'viewer'
+        role: member.role as 'admin' | 'editor' | 'visitor'
       })));
     } catch (error) {
       console.error('Error loading family members:', error);
@@ -358,7 +358,7 @@ export const useFamilies = () => {
   };
 
   // Crear invitación
-  const createInvitation = async (email: string, role: string = 'viewer') => {
+  const createInvitation = async (email: string, role: string = 'visitor') => {
     if (!currentFamily) return { error: 'No hay familia seleccionada' };
 
     try {
@@ -415,7 +415,7 @@ export const useFamilies = () => {
               
               <p>Has sido invitado/a a unirte a la familia "<strong>${currentFamily.name}</strong>" en FamiFlow.</p>
               
-              <p>Tu rol asignado será: <strong>${role === 'viewer' ? 'Visitante' : role === 'editor' ? 'Editor' : 'Administrador'}</strong></p>
+              <p>Tu rol asignado será: <strong>${role === 'visitor' ? 'Visitante' : role === 'editor' ? 'Editor' : 'Administrador'}</strong></p>
               
               <div style="text-align: center;">
                 <a href="${inviteUrl}" class="button">Aceptar Invitación</a>
