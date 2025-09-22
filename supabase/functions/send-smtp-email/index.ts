@@ -27,8 +27,8 @@ async function sendEmailViaResend(emailData: EmailRequest) {
     throw new Error(`Resend API key not configured. Missing: RESEND_API_KEY`);
   }
 
-  // Use your verified domain here - replace with your actual verified domain
-  const fromAddress = emailData.from || "FamiFlow <noreply@tu-dominio-verificado.com>";
+  // Using verified domain rankidia.com
+  const fromAddress = emailData.from || "FamiFlow <noreply@rankidia.com>";
   
   console.log("Sending email via Resend:", {
     to: emailData.to,
