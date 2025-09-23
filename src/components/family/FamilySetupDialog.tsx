@@ -40,14 +40,24 @@ export const FamilySetupDialog = ({ open, onOpenChange }: FamilySetupDialogProps
   };
 
   const handleJoinFamily = async (e: React.FormEvent) => {
+    console.log('🔥 handleJoinFamily ejecutado con:', { familyId, joinMessage });
     e.preventDefault();
-    if (!familyId) return;
+    if (!familyId) {
+      console.log('❌ No hay familyId, abortando');
+      return;
+    }
 
+    console.log('🚀 Llamando a requestToJoinFamily...');
     const result = await requestToJoinFamily(familyId, joinMessage);
+    console.log('📋 Resultado de requestToJoinFamily:', result);
+    
     if (result && !result.error) {
+      console.log('✅ Solicitud exitosa, cerrando diálogo');
       onOpenChange(false);
       setFamilyId('');
       setJoinMessage('');
+    } else {
+      console.log('❌ Error en la solicitud:', result?.error);
     }
   };
 
