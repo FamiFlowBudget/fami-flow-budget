@@ -180,12 +180,19 @@ export const useFamilies = () => {
 
   // Solicitar unirse a familia
   const requestToJoinFamily = async (familyPublicId: string, message?: string) => {
-    if (!user) return { error: 'Usuario no autenticado' };
+    console.log('🔍 Iniciando solicitud de unión a familia:', { familyPublicId, user: user?.id });
+    
+    if (!user) {
+      console.log('❌ Usuario no autenticado');
+      return { error: 'Usuario no autenticado' };
+    }
 
     try {
       setLoading(true);
+      console.log('🔄 Cargando...');
 
       // Verificar que la familia existe
+      console.log('🔍 Buscando familia con ID:', familyPublicId.toUpperCase());
       const { data: familyData, error: familyError } = await supabase
         .from('families')
         .select('id, name')
@@ -193,10 +200,14 @@ export const useFamilies = () => {
         .single();
 
       if (familyError || !familyData) {
+        console.log('❌ Error buscando familia:', familyError);
         throw new Error('ID de familia no encontrado');
       }
 
+      console.log('✅ Familia encontrada:', familyData);
+
       // Verificar que el usuario no es ya miembro
+      console.log('🔍 Verificando si el usuario ya es miembro...');
       const { data: existingMember } = await supabase
         .from('user_families')
         .select('id')
@@ -205,10 +216,20 @@ export const useFamilies = () => {
         .single();
 
       if (existingMember) {
+        console.log('❌ Usuario ya es miembro de la familia');
         throw new Error('Ya eres miembro de esta familia');
       }
 
+      console.log('✅ Usuario no es miembro, procediendo con la solicitud...');
+
       // Crear solicitud de unión
+      console.log('📝 Creando solicitud de unión:', {
+        email: user.email,
+        family_id: familyData.id,
+        requester_user_id: user.id,
+        message: message || 'Sin mensaje'
+      });
+      
       const { error: requestError } = await supabase
         .from('join_requests')
         .insert({
@@ -219,7 +240,12 @@ export const useFamilies = () => {
           status: 'pending'
         });
 
-      if (requestError) throw requestError;
+      if (requestError) {
+        console.log('❌ Error creando solicitud:', requestError);
+        throw requestError;
+      }
+
+      console.log('✅ Solicitud creada exitosamente');
 
       toast({
         title: "Solicitud enviada",
@@ -228,7 +254,7 @@ export const useFamilies = () => {
 
       return { data: familyData };
     } catch (error: any) {
-      console.error('Error requesting to join family:', error);
+      console.error('❌ Error en requestToJoinFamily:', error);
       toast({
         variant: "destructive",
         title: "Error",
