@@ -247,9 +247,107 @@ export const useFamilies = () => {
 
       console.log('✅ Solicitud creada exitosamente');
 
+      // Obtener administradores de la familia para notificarles
+      console.log('📧 Buscando administradores para notificar...');
+      const { data: adminsData, error: adminsError } = await supabase
+        .from('family_members')
+        .select('email, name')
+        .eq('family_id', familyData.id)
+        .eq('role', 'admin')
+        .eq('active', true);
+
+      if (!adminsError && adminsData && adminsData.length > 0) {
+        console.log('👥 Administradores encontrados:', adminsData.length);
+        
+        // Enviar email a cada administrador
+        for (const admin of adminsData) {
+          if (admin.email) {
+            try {
+              console.log('📧 Enviando email a administrador:', admin.email);
+              
+              const emailHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <meta charset="utf-8">
+                  <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .content { background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                    .button { 
+                      display: inline-block; 
+                      padding: 12px 24px; 
+                      background-color: #007bff; 
+                      color: white; 
+                      text-decoration: none; 
+                      border-radius: 5px;
+                      margin: 20px 0;
+                    }
+                    .footer { margin-top: 30px; font-size: 12px; color: #666; }
+                    .alert { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 10px 0; }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <div class="header">
+                      <h1>Nueva Solicitud de Unión - FamiFlow</h1>
+                    </div>
+                    
+                    <p>¡Hola ${admin.name}!</p>
+                    
+                    <div class="alert">
+                      <strong>Tienes una nueva solicitud para unirse a tu familia "${familyData.name}"</strong>
+                    </div>
+                    
+                    <div class="content">
+                      <h3>Detalles de la Solicitud:</h3>
+                      <p><strong>Email del solicitante:</strong> ${user.email}</p>
+                      <p><strong>Familia:</strong> ${familyData.name}</p>
+                      <p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
+                      ${message ? `<p><strong>Mensaje:</strong> ${message}</p>` : ''}
+                    </div>
+                    
+                    <p>Para revisar y aprobar esta solicitud, inicia sesión en FamiFlow y dirígete a la sección de gestión de familia.</p>
+                    
+                    <div style="text-align: center;">
+                      <a href="${window.location.origin}/family" class="button">Revisar Solicitud</a>
+                    </div>
+                    
+                    <div class="footer">
+                      <p>Si no esperabas esta solicitud, puedes rechazarla desde la aplicación.</p>
+                      <p>Este es un email automático de FamiFlow.</p>
+                    </div>
+                  </div>
+                </body>
+                </html>
+              `;
+
+              const { error: emailError } = await supabase.functions.invoke('send-smtp-email', {
+                body: {
+                  to: admin.email,
+                  subject: `Nueva solicitud para unirse a ${familyData.name}`,
+                  html: emailHtml
+                }
+              });
+
+              if (emailError) {
+                console.error('❌ Error enviando email a', admin.email, ':', emailError);
+              } else {
+                console.log('✅ Email enviado exitosamente a', admin.email);
+              }
+            } catch (emailError) {
+              console.error('❌ Error enviando email de notificación:', emailError);
+            }
+          }
+        }
+      } else {
+        console.log('⚠️ No se encontraron administradores para notificar');
+      }
+
       toast({
         title: "Solicitud enviada",
-        description: `Tu solicitud para unirte a "${familyData.name}" ha sido enviada`
+        description: `Tu solicitud para unirte a "${familyData.name}" ha sido enviada y notificada a los administradores`
       });
 
       return { data: familyData };
