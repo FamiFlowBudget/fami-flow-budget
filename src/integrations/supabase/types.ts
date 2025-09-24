@@ -299,33 +299,42 @@ export type Database = {
           created_at: string
           created_by: string
           email_allowlist: string | null
+          email_verified: boolean | null
           expires_at: string
           family_id: string
           id: string
           suggested_role: string
           token: string
+          used_at: string | null
+          used_by_user_id: string | null
           uses_remaining: number
         }
         Insert: {
           created_at?: string
           created_by: string
           email_allowlist?: string | null
+          email_verified?: boolean | null
           expires_at: string
           family_id: string
           id?: string
           suggested_role?: string
           token: string
+          used_at?: string | null
+          used_by_user_id?: string | null
           uses_remaining?: number
         }
         Update: {
           created_at?: string
           created_by?: string
           email_allowlist?: string | null
+          email_verified?: boolean | null
           expires_at?: string
           family_id?: string
           id?: string
           suggested_role?: string
           token?: string
+          used_at?: string | null
+          used_by_user_id?: string | null
           uses_remaining?: number
         }
         Relationships: [
@@ -382,6 +391,39 @@ export type Database = {
           },
         ]
       }
+      security_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          record_id: string | null
+          table_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_families: {
         Row: {
           family_id: string
@@ -422,9 +464,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_join_request_limit: {
+        Args: { family_uuid: string }
+        Returns: boolean
+      }
       generate_family_public_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_family_invitations: {
+        Args: { family_uuid: string }
+        Returns: {
+          created_at: string
+          email_allowlist: string
+          email_verified: boolean
+          expires_at: string
+          id: string
+          suggested_role: string
+          used_at: string
+          uses_remaining: number
+        }[]
       }
       get_user_family_ids: {
         Args: Record<PropertyKey, never>
@@ -441,6 +500,14 @@ export type Database = {
       setup_default_categories_for_user: {
         Args: { user_uuid: string }
         Returns: undefined
+      }
+      validate_and_use_invitation: {
+        Args: { invitation_token: string; user_email: string }
+        Returns: Json
+      }
+      validate_email: {
+        Args: { email_text: string }
+        Returns: boolean
       }
     }
     Enums: {
