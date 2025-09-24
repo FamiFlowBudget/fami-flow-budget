@@ -481,14 +481,17 @@ export const useFamilies = () => {
     }
   };
 
-  // Crear invitación
+  // Crear invitación (método seguro)
   const createInvitation = async (email: string, role: string = 'visitor') => {
     if (!currentFamily) return { error: 'No hay familia seleccionada' };
 
     try {
       setLoading(true);
 
+      // Generar token seguro
       const token = crypto.randomUUID();
+      
+      // Crear invitación con el nuevo esquema seguro
       const { data, error } = await supabase
         .from('invitations')
         .insert({
@@ -498,16 +501,21 @@ export const useFamilies = () => {
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 días
           uses_remaining: 1,
           created_by: user!.id,
-          token
+          token,
+          email_verified: false, // Requerirá verificación
+          used_at: null,
+          used_by_user_id: null
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Enviar email de invitación via SMTP
+      // Enviar email de invitación con enlace seguro
       try {
-        const inviteUrl = `${window.location.origin}/join?token=${token}`;
+        // El enlace ahora apunta a una página segura que validará el token y email
+        const inviteUrl = `${window.location.origin}/invite?token=${token}&email=${encodeURIComponent(email)}`;
+        
         const emailHtml = `
           <!DOCTYPE html>
           <html>
@@ -517,6 +525,7 @@ export const useFamilies = () => {
               body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
               .container { max-width: 600px; margin: 0 auto; padding: 20px; }
               .header { text-align: center; margin-bottom: 30px; }
+              .content { background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; }
               .button { 
                 display: inline-block; 
                 padding: 12px 24px; 
@@ -527,6 +536,7 @@ export const useFamilies = () => {
                 margin: 20px 0;
               }
               .footer { margin-top: 30px; font-size: 12px; color: #666; }
+              .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 10px 0; }
             </style>
           </head>
           <body>
@@ -537,23 +547,24 @@ export const useFamilies = () => {
               
               <p>¡Hola!</p>
               
-              <p>Has sido invitado/a a unirte a la familia "<strong>${currentFamily.name}</strong>" en FamiFlow.</p>
+              <div class="content">
+                <p>Has sido invitado/a a unirte a la familia "<strong>${currentFamily.name}</strong>" en FamiFlow.</p>
+                <p>Tu rol asignado será: <strong>${role === 'visitor' ? 'Visitante' : role === 'editor' ? 'Editor' : 'Administrador'}</strong></p>
+              </div>
               
-              <p>Tu rol asignado será: <strong>${role === 'visitor' ? 'Visitante' : role === 'editor' ? 'Editor' : 'Administrador'}</strong></p>
+              <div class="warning">
+                <strong>Importante:</strong> Esta invitación está vinculada a tu dirección de email (${email}) por seguridad.
+              </div>
               
               <div style="text-align: center;">
                 <a href="${inviteUrl}" class="button">Aceptar Invitación</a>
               </div>
               
-              <p>O copia y pega este enlace en tu navegador:</p>
-              <p style="word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 5px;">
-                ${inviteUrl}
-              </p>
-              
-              <p><small>Esta invitación expira en 7 días.</small></p>
+              <p><small>Esta invitación expira en 7 días y solo puede ser utilizada una vez.</small></p>
               
               <div class="footer">
                 <p>Si no esperabas esta invitación, puedes ignorar este correo.</p>
+                <p>Por tu seguridad, esta invitación solo funcionará si inicias sesión con el email ${email}</p>
               </div>
             </div>
           </body>
@@ -578,7 +589,7 @@ export const useFamilies = () => {
         } else {
           toast({
             title: "Invitación enviada",
-            description: `Se ha enviado una invitación por email a ${email}`
+            description: `Se ha enviado una invitación segura por email a ${email}`
           });
         }
       } catch (emailError) {
@@ -599,6 +610,45 @@ export const useFamilies = () => {
         description: error.message || "No se pudo crear la invitación"
       });
       return { error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Aceptar invitación usando la función segura
+  const acceptInvitation = async (token: string, userEmail: string) => {
+    try {
+      setLoading(true);
+
+      // Llamar a la función RPC segura como función de Supabase
+      const { data, error } = await supabase.rpc('validate_and_use_invitation' as any, {
+        invitation_token: token,
+        user_email: userEmail
+      }) as { data: any, error: any };
+
+      if (error) throw error;
+
+      const result = data;
+      if (result.success) {
+        toast({
+          title: "¡Bienvenido!",
+          description: `Te has unido exitosamente a ${result.family_name} con el rol ${result.role}`
+        });
+        
+        // Recargar familias para incluir la nueva
+        await loadUserFamilies();
+        return { success: true, familyId: result.family_id };
+      } else {
+        throw new Error(result.error || 'Error al procesar la invitación');
+      }
+    } catch (error: any) {
+      console.error('Error accepting invitation:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo aceptar la invitación"
+      });
+      return { success: false, error: error.message };
     } finally {
       setLoading(false);
     }
@@ -631,6 +681,7 @@ export const useFamilies = () => {
     requestToJoinFamily,
     handleJoinRequest,
     createInvitation,
+    acceptInvitation,
     loadJoinRequests,
     loadFamilyMembers
   };

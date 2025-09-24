@@ -18,6 +18,7 @@ import Accounts from "./pages/Accounts";
 import NotFound from "./pages/NotFound";
 import Alerts from "./pages/Alerts";
 import Dashboard from "./pages/Dashboard";
+import Invite from "./pages/Invite";
 import { FiltersProvider } from "@/providers/FiltersProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
 
@@ -31,10 +32,11 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/" element={
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/invite" element={<Invite />} />
+                  <Route path="/" element={
                   <ProtectedRoute>
                     <AppLayout>
                       <Index />
