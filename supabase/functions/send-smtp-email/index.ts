@@ -69,7 +69,20 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log("Received email request");
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("Missing Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log("Received authenticated email request");
     
     const emailData: EmailRequest = await req.json();
     console.log("Email data:", { to: emailData.to, subject: emailData.subject });

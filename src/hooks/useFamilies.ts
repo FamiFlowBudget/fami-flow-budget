@@ -222,7 +222,7 @@ export const useFamilies = () => {
 
       console.log('✅ Usuario no es miembro, procediendo con la solicitud...');
 
-      // Crear solicitud de unión
+      // Crear solicitud de unión (ahora requiere autenticación por RLS)
       console.log('📝 Creando solicitud de unión:', {
         email: user.email,
         family_id: familyData.id,
