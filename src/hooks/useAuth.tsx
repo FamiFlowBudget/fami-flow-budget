@@ -48,10 +48,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
+const signUp = async (email: string, password: string) => {
+  // Usamos la URL pública con el subdominio correcto.
+  const redirectUrl = 'https://app.famiflowbudget.com/'; 
+
+  const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
