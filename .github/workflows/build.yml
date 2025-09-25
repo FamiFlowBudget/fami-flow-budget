@@ -2,29 +2,29 @@ name: Build Vite Project
 
 on:
   push:
-    branches: [ "main" ] # Se activa cada vez que subes cambios a la rama principal
+    branches: [ "main" ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest # Usamos un servidor virtual de Linux para construir
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3 # Paso 1: Descarga tu código
+        uses: actions/checkout@v4 # Actualizado a v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3 # Paso 2: Prepara el entorno de Node.js
+        uses: actions/setup-node@v4 # Actualizado a v4
         with:
-          node-version: '18' # Usamos la versión 18 de Node.js
+          node-version: '18'
 
       - name: Install dependencies
-        run: npm install # Paso 3: Ejecuta "npm install"
+        run: npm install
 
       - name: Build project
-        run: npm run build # Paso 4: Ejecuta "npm run build", esto crea la carpeta 'dist'
+        run: npm run build
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3 # Paso 5: Guarda la carpeta 'dist' como un archivo descargable
+        uses: actions/upload-artifact@v4 # <<<--- ¡ESTE ERA EL CAMBIO IMPORTANTE!
         with:
-          name: famiflow-build # Le damos un nombre al archivo
-          path: dist/ # Especificamos que queremos guardar la carpeta 'dist'
+          name: famiflow-build
+          path: dist/
