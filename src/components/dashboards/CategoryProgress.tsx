@@ -1,110 +1,131 @@
+// src/components/dashboards/CategoryProgress.tsx (Versión Jerárquica)
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { BudgetProgress, formatCurrency } from '@/types/budget';
-import { Target, Eye } from 'lucide-react';
-import { getCategoryIconByName } from '@/lib/icons';
-import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
-import { getCategoryPath } from '@/utils/categoryUtils';
+import { formatCurrency } from '@/types/budget';
+import { Target, Eye, ChevronRight, ChevronDown } from 'lucide-react';
+import { getCategoryIconById } from '@/lib/icons';
+import { useBudgetSupabase, HierarchicalBudgetProgress } from '@/hooks/useBudgetSupabase';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils"; // Importamos una utilidad para clases condicionales
 
 interface CategoryProgressProps {
-  categories: BudgetProgress[];
-  onCategoryClick?: (categoryId: string) => void;
-  showAll?: boolean;
+  categories: HierarchicalBudgetProgress[];
+  onCategoryClick?: (categoryId: string) => void;
+  showAll?: boolean;
+  isLoading?: boolean;
 }
 
-export const CategoryProgress = ({ categories, onCategoryClick, showAll: initialShowAll = false }: CategoryProgressProps) => {
-  const { categories: allCategories } = useBudgetSupabase();
-  const [showAll, setShowAll] = useState(initialShowAll);
-  const displayCategories = showAll ? categories : categories.slice(0, 6);
+const ProgressBar = ({ progress, status }: { progress: number; status: string }) => (
+  <Progress 
+    value={Math.min(progress, 100)} 
+    className={cn("h-2", {
+      "bg-success/20": status === 'success',
+      "bg-warning/20": status === 'warning',
+      "bg-destructive/20": status === 'danger',
+    })} 
+    indicatorClassName={cn({
+      "bg-success": status === 'success',
+      "bg-warning": status === 'warning',
+      "bg-destructive": status === 'danger',
+    })}
+  />
+);
 
-  if (categories.length === 0) {
-    return (
-      <Card className="p-6 text-center">
-        <div className="text-muted-foreground">
-          <Target className="mx-auto h-12 w-12 mb-3 opacity-50" />
-          <h3 className="font-semibold mb-2">No hay presupuestos definidos</h3>
-          <p className="text-sm">Define presupuestos por categoría para ver el progreso</p>
-        </div>
-      </Card>
-    );
+export const CategoryProgress = ({ categories, onCategoryClick, showAll: initialShowAll = false, isLoading }: CategoryProgressProps) => {
+  const { categories: allCategories } = useBudgetSupabase();
+  const [showAll, setShowAll] = useState(initialShowAll);
+  const displayCategories = showAll ? categories : categories.slice(0, 5);
+
+  if (isLoading) {
+    // Podríamos añadir un skeleton aquí más adelante
+    return <Card className="p-6 text-center"><p>Cargando progreso...</p></Card>;
   }
 
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Progreso por Categoría</CardTitle>
-          {!showAll && categories.length > 6 && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowAll(true)}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Ver todas
-            </Button>
-          )}
-          {showAll && categories.length > 6 && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowAll(false)}
-            >
-              Ver menos
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {displayCategories.map((category) => {
-          const IconComponent = getCategoryIconByName(category.categoryName, allCategories);
-          
-          return (
-            <div 
-              key={category.categoryId} 
-              className="space-y-2 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
-              onClick={() => onCategoryClick?.(category.categoryId)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg transition-colors ${
-                    category.status === 'success' ? 'bg-success/10 text-success' :
-                    category.status === 'warning' ? 'bg-warning/10 text-warning' : 
-                    'bg-destructive/10 text-destructive'
-                  }`}>
-                    <IconComponent className="h-4 w-4" />
+  if (categories.length === 0) {
+    return (
+      <Card className="p-6 text-center">
+        <div className="text-muted-foreground">
+          <Target className="mx-auto h-12 w-12 mb-3 opacity-50" />
+          <h3 className="font-semibold mb-2">No hay presupuestos definidos</h3>
+          <p className="text-sm">Define presupuestos para ver tu progreso aquí.</p>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Progreso por Categoría</CardTitle>
+          {/* Lógica para mostrar/ocultar no cambia */}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {displayCategories.map((category) => {
+          const IconComponent = getCategoryIconById(category.categoryId, allCategories);
+          
+          return (
+            <Collapsible key={category.categoryId} className="space-y-2">
+              {/* Categoría Principal */}
+              <CollapsibleTrigger className="w-full p-3 rounded-lg hover:bg-muted/50 transition-colors flex flex-col space-y-2">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      {category.subcategories.length > 0 && <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />}
+                      <IconComponent className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-left">{category.categoryName}</p>
+                      <p className="text-xs text-muted-foreground text-left">
+                        {formatCurrency(category.spentAmount)} / {formatCurrency(category.budgetAmount)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">{getCategoryPath(category.categoryId, allCategories)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrency(category.spentAmount)} de {formatCurrency(category.budgetAmount)}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className={`text-sm font-bold ${
-                    category.status === 'success' ? 'text-success' :
-                    category.status === 'warning' ? 'text-warning' : 
-                    'text-destructive'
-                  }`}>
+                  <span className={cn("text-sm font-bold", {
+                    'text-success': category.status === 'success',
+                    'text-warning': category.status === 'warning',
+                    'text-destructive': category.status === 'danger'
+                  })}>
                     {category.percentage.toFixed(1)}%
                   </span>
-                  <p className="text-xs text-muted-foreground">
-                    {formatCurrency(category.budgetAmount - category.spentAmount)} disponible
-                  </p>
                 </div>
-              </div>
+                <ProgressBar progress={category.percentage} status={category.status} />
+              </CollapsibleTrigger>
               
-              <Progress 
-                value={Math.min(category.percentage, 100)}
-                className="h-2"
-              />
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
-  );
+              {/* Subcategorías */}
+              <CollapsibleContent className="pl-6 space-y-3 pt-2">
+                {category.subcategories.map(sub => (
+                  <div key={sub.categoryId} className="flex flex-col space-y-2">
+                     <div className="flex items-center justify-between w-full">
+                       <div className="flex items-center space-x-3">
+                         <div className="w-6" /> {/* Espaciador para alinear */}
+                         <div>
+                           <p className="font-medium text-xs text-left">{sub.categoryName}</p>
+                           <p className="text-xs text-muted-foreground text-left">
+                             {formatCurrency(sub.spentAmount)} / {formatCurrency(sub.budgetAmount)}
+                           </p>
+                         </div>
+                       </div>
+                       <span className={cn("text-xs font-bold", {
+                         'text-success': sub.status === 'success',
+                         'text-warning': sub.status === 'warning',
+                         'text-destructive': sub.status === 'danger'
+                       })}>
+                         {sub.percentage.toFixed(1)}%
+                       </span>
+                     </div>
+                     <ProgressBar progress={sub.percentage} status={sub.status} />
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
 };

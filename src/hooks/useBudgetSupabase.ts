@@ -1,4 +1,4 @@
-// src/hooks/useBudgetSupabase.ts (Actualizado para incluir receipt_url)
+// src/hooks/useBudgetSupabase.ts (CON LÓGICA JERÁRQUICA Y ALERTAS)
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,11 @@ import { 
 } from '@/types/budget';
 import { useToast } from '@/hooks/use-toast';
 
+// Nueva interfaz para los datos jerárquicos
+export interface HierarchicalBudgetProgress extends BudgetProgress {
+  subcategories: BudgetProgress[];
+}
+
 export const useBudgetSupabase = () => {
   const { user } = useAuth();
   const { currentFamily } = useFamilies(); 
@@ -29,47 +34,40 @@ export const useBudgetSupabase = () => {
 
   const loadData = useCallback(async () => {
     if (!user || !currentFamily) {
-      setLoading(false);
-      return;
-    };
+      setLoading(false);
+      return;
+    };
     
     setLoading(true);
     try {
-      // (Carga de categorías y miembros no cambia)
-      const { data: categoriesData, error: catError } = await supabase.from('categories').select('*').eq('family_id', currentFamily.id).order('order_index');
-      if (catError) throw catError;
-      setCategories(categoriesData || []);
+      const { data: categoriesData, error: catError } = await supabase.from('categories').select('*').eq('family_id', currentFamily.id).order('order_index');
+      if (catError) throw catError;
+      setCategories(categoriesData || []);
 
-      const { data: membersData, error: memError } = await supabase.from('family_members').select('*').eq('family_id', currentFamily.id);
-      if (memError) throw memError;
-      setMembers(membersData || []);
-      const userAsMember = membersData?.find(m => m.user_id === user.id);
-      setCurrentMember(userAsMember || null);
+      const { data: membersData, error: memError } = await supabase.from('family_members').select('*').eq('family_id', currentFamily.id);
+      if (memError) throw memError;
+      setMembers(membersData || []);
+      const userAsMember = membersData?.find(m => m.user_id === user.id);
+      setCurrentMember(userAsMember || null);
 
-      const { data: budgetsData, error: budError } = await supabase.from('budgets').select('*').eq('family_id', currentFamily.id);
-      if (budError) throw budError;
+      const { data: budgetsData, error: budError } = await supabase.from('budgets').select('*').eq('family_id', currentFamily.id);
+      if (budError) throw budError;
       setBudgets(budgetsData || []);
 
-      // <<<--- CAMBIO AQUÍ: Ahora también pedimos receipt_url ---<<<
-      const { data: expensesData, error: expError } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('family_id', currentFamily.id)
-        .order('expense_date', { ascending: false });
-      if (expError) throw expError;
+      const { data: expensesData, error: expError } = await supabase.from('expenses').select('*').eq('family_id', currentFamily.id).order('expense_date', { ascending: false });
+      if (expError) throw expError;
       setExpenses((expensesData || []).map(expense => ({
-        ...expense,
-        // Mapeamos los nombres de la base de datos a los de la app
-        memberId: expense.member_id,
-        categoryId: expense.category_id,
-        paymentMethod: expense.payment_method,
-        receiptUrl: expense.receipt_url, // <<<--- AÑADIMOS EL NUEVO CAMPO
-        date: expense.expense_date
-      })));
+        ...expense,
+        memberId: expense.member_id,
+        categoryId: expense.category_id,
+        paymentMethod: expense.payment_method,
+        receiptUrl: expense.receipt_url,
+        date: expense.expense_date
+      })));
 
-      if (currentFamily.currency) {
-        setCurrency(currentFamily.currency as Currency);
-      }
+      if (currentFamily.currency) {
+        setCurrency(currentFamily.currency as Currency);
+      }
 
     } catch (error) {
       console.error('Error cargando datos de la familia:', error);
@@ -83,35 +81,18 @@ export const useBudgetSupabase = () => {
     loadData();
   }, [loadData]);
 
-  // <<<--- CAMBIO AQUÍ: La función ahora acepta receiptUrl ---<<<
   const addExpense = useCallback(async (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'family_id'>) => {
     if (!user || !currentFamily) return null;
-
     try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .insert({
-          member_id: expense.memberId,
-          category_id: expense.categoryId,
-          amount: expense.amount,
-          currency: expense.currency,
-          description: expense.description,
-          merchant: expense.merchant,
-          payment_method: expense.paymentMethod,
-          tags: expense.tags,
-          expense_date: expense.date,
-          receipt_url: expense.receiptUrl, // <<<--- AÑADIMOS EL NUEVO CAMPO AL GUARDAR
-          family_id: currentFamily.id,
-          user_id: user.id
-        })
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from('expenses').insert({
+        member_id: expense.memberId, category_id: expense.categoryId, amount: expense.amount, currency: expense.currency,
+        description: expense.description, merchant: expense.merchant, payment_method: expense.paymentMethod,
+        tags: expense.tags, expense_date: expense.date, receipt_url: expense.receiptUrl,
+        family_id: currentFamily.id, user_id: user.id
+      }).select().single();
       if (error) throw error;
-
       if (data) {
-        // Mapeamos de vuelta para consistencia en el estado local
-        const newExpense: Expense = { ...data, memberId: data.member_id, categoryId: data.category_id, paymentMethod: data.payment_method, receiptUrl: data.receipt_url, date: data.expense_date };
+        const newExpense: Expense = { ...data, memberId: data.member_id, categoryId: data.category_id, paymentMethod: data.payment_method, receiptUrl: data.receipt_url, date: data.expense_date };
         setExpenses(prev => [newExpense, ...prev]);
         toast({ title: "Gasto agregado", description: "El gasto se ha registrado correctamente" });
         return newExpense;
@@ -123,7 +104,83 @@ export const useBudgetSupabase = () => {
     return null;
   }, [user, currentFamily, toast]);
 
-  // (El resto de funciones como updateExpense, deleteExpense, y los cálculos del dashboard no necesitan cambios por ahora)
+  const getCurrentMonthExpenses = useCallback((period?: { month: number; year: number }) => {
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+    return expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate.getFullYear() === targetYear && expenseDate.getMonth() + 1 === targetMonth;
+    });
+  }, [expenses]);
+
+  const getHierarchicalCategoryProgress = useCallback((period?: { month: number; year: number }): HierarchicalBudgetProgress[] => {
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
+
+    const mainCategories = categories.filter(cat => !cat.parentId);
+
+    const hierarchicalData = mainCategories.map(mainCat => {
+      const subcategories = categories.filter(sub => sub.parentId === mainCat.id);
+
+      const processedSubcategories: BudgetProgress[] = subcategories.map(subCat => {
+        const subBudget = budgets
+          .filter(b => b.categoryId === subCat.id && b.year === targetYear && b.month === targetMonth)
+          .reduce((sum, b) => sum + b.amount, 0);
+        
+        const subSpent = currentMonthExpenses
+          .filter(e => e.categoryId === subCat.id)
+          .reduce((sum, e) => sum + e.amount, 0);
+
+        const percentage = subBudget > 0 ? (subSpent / subBudget) * 100 : 0;
+        let status: 'danger' | 'warning' | 'success' = 'success';
+        if (percentage >= 100) status = 'danger';
+        else if (percentage >= 80) status = 'warning';
+
+        return {
+          categoryId: subCat.id, categoryName: subCat.name,
+          budgetAmount: subBudget, spentAmount: subSpent,
+          percentage, status
+        };
+      });
+
+      const mainBudgetDirect = budgets
+        .filter(b => b.categoryId === mainCat.id && b.year === targetYear && b.month === targetMonth)
+        .reduce((sum, b) => sum + b.amount, 0);
+      
+      const mainSpentDirect = currentMonthExpenses
+        .filter(e => e.categoryId === mainCat.id)
+        .reduce((sum, e) => sum + e.amount, 0);
+
+      const totalBudget = mainBudgetDirect + processedSubcategories.reduce((sum, sub) => sum + sub.budgetAmount, 0);
+      const totalSpent = mainSpentDirect + processedSubcategories.reduce((sum, sub) => sum + sub.spentAmount, 0);
+      
+      const totalPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+      let totalStatus: 'danger' | 'warning' | 'success' = 'success';
+      if (totalPercentage >= 100) totalStatus = 'danger';
+      else if (totalPercentage >= 80) totalStatus = 'warning';
+
+      processedSubcategories.sort((a, b) => {
+        if (a.spentAmount > 0 || b.spentAmount > 0) return b.spentAmount - a.spentAmount;
+        return b.budgetAmount - a.budgetAmount;
+      });
+
+      return {
+        categoryId: mainCat.id, categoryName: mainCat.name,
+        budgetAmount: totalBudget, spentAmount: totalSpent,
+        percentage: totalPercentage, status: totalStatus,
+        subcategories: processedSubcategories
+      };
+    });
+
+    hierarchicalData.sort((a, b) => {
+      if (a.spentAmount > 0 || b.spentAmount > 0) return b.spentAmount - a.spentAmount;
+      return b.budgetAmount - a.budgetAmount;
+    });
+
+    return hierarchicalData;
+  }, [categories, budgets, expenses, getCurrentMonthExpenses]);
+
 
   return {
     expenses,
@@ -135,11 +192,7 @@ export const useBudgetSupabase = () => {
     loading,
     addExpense,
     loadData,
-    // (Resto de funciones exportadas)
-    getCurrentMonthExpenses,
-    getCategoryProgress,
-    getDashboardKPIs,
-    getYearTrendData,
-    getDailyBurnData,
+    getHierarchicalCategoryProgress,
+    // (Resto de funciones que ya tenías)
   };
 };
