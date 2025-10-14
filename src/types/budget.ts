@@ -1,10 +1,9 @@
-// src/types/budget.ts (Versión Completa y Corregida)
+// src/types/budget.ts (Versión Definitiva y Completa)
 
 export type Currency = 'USD' | 'CLP' | 'EUR';
 export type PaymentMethod = 'cash' | 'debit' | 'credit' | 'transfer' | 'other';
 export type FamilyMemberRole = 'admin' | 'adult' | 'kid';
 
-// <<<--- FUNCIÓN RESTAURADA ---<<<
 // Helper function to format currency
 export const formatCurrency = (amount: number, currency: Currency = 'CLP') => {
   return new Intl.NumberFormat('es-CL', {
@@ -14,6 +13,16 @@ export const formatCurrency = (amount: number, currency: Currency = 'CLP') => {
     maximumFractionDigits: 0,
   }).format(amount);
 };
+
+// Constante de subcategorías por defecto restaurada
+export const DEFAULT_SUBCATEGORIES: { parent: string, subcategories: string[] }[] = [
+    { parent: 'Alimentación', subcategories: ['Supermercado', 'Restaurantes', 'Delivery'] },
+    { parent: 'Transporte', subcategories: ['Combustible', 'Transporte Público', 'Mantención Vehículo'] },
+    { parent: 'Vivienda', subcategories: ['Arriendo/Dividendo', 'Cuentas Básicas (Luz, Agua, Gas)', 'Internet/Cable'] },
+    { parent: 'Salud', subcategories: ['Farmacia', 'Consultas Médicas', 'Seguro de Salud'] },
+    { parent: 'Ocio', subcategories: ['Cine/Streaming', 'Salidas', 'Vacaciones'] },
+    { parent: 'Educación', subcategories: ['Colegiatura', 'Útiles', 'Cursos'] }
+];
 
 export interface Category {
   id: string;
