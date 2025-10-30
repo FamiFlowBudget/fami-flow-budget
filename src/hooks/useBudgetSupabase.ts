@@ -104,6 +104,62 @@ export const useBudgetSupabase = () => {
     return null;
   }, [user, currentFamily, toast]);
 
+  const cleanDuplicateCategories = useCallback(async () => {
+    if (!currentFamily) return;
+
+    try {
+      // 1. Obtener todas las categorías de la familia
+      const { data: allCategories, error: fetchError } = await supabase
+        .from('categories')
+        .select('id, name, parentId, family_id')
+        .eq('family_id', currentFamily.id);
+
+      if (fetchError) throw fetchError;
+
+      // 2. Identificar duplicados (mismo nombre y mismo parentId)
+      const uniqueCategories = new Map<string, Category>();
+      const duplicatesToDelete: string[] = [];
+
+      for (const category of allCategories) {
+        const key = `${category.name.trim().toLowerCase()}-${category.parentId || 'null'}`;
+        if (uniqueCategories.has(key)) {
+          duplicatesToDelete.push(category.id);
+        } else {
+          uniqueCategories.set(key, category);
+        }
+      }
+
+      if (duplicatesToDelete.length === 0) {
+        toast({ title: "Sin duplicados", description: "No se encontraron categorías duplicadas." });
+        return;
+      }
+
+      // 3. Eliminar los duplicados
+      const { error: deleteError } = await supabase
+        .from('categories')
+        .delete()
+        .in('id', duplicatesToDelete);
+
+      if (deleteError) throw deleteError;
+
+      // 4. Actualizar el estado local para reflejar los cambios
+      setCategories(prev => prev.filter(c => !duplicatesToDelete.includes(c.id)));
+
+      toast({
+        title: "Limpieza completada",
+        description: `Se eliminaron ${duplicatesToDelete.length} categorías duplicadas.`,
+      });
+
+    } catch (error) {
+      console.error('Error limpiando categorías duplicadas:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo completar la limpieza de duplicados.",
+        variant: "destructive",
+      });
+    }
+  }, [currentFamily, toast]);
+
   const getCurrentMonthExpenses = useCallback((period?: { month: number; year: number }) => {
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
@@ -211,6 +267,83 @@ export const useBudgetSupabase = () => {
     };
   }, [getCurrentMonthExpenses, budgets, currency]);
 
+  const getCategoryProgress = useCallback((period?: { month: number; year: number }): BudgetProgress[] => {
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+
+    return categories.map(category => {
+      // Buscar presupuesto para esta categoría/mes
+      const budget = budgets.find(b =>
+        b.categoryId === category.id &&
+        b.year === targetYear &&
+        b.month === targetMonth
+      );
+
+      // Sumar gastos de esta categoría
+      const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
+      const spentAmount = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+      const budgetAmount = budget?.amount || 0;
+      const percentage = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
+
+      let status: 'success' | 'warning' | 'danger' = 'success';
+      if (percentage >= 90) status = 'danger';
+      else if (percentage >= 75) status = 'warning';
+
+      return {
+        categoryId: category.id,
+        categoryName: category.name,
+        budgetAmount,
+        spentAmount,
+        percentage,
+        status,
+      };
+    }).filter(p => p.budgetAmount > 0); // Solo mostrar categorías con presupuesto
+  }, [categories, budgets, getCurrentMonthExpenses]);
+
+  const getYearTrendData = useCallback(() => {
+    const trendData: { month: string; budget: number; spent: number }[] = [];
+    const currentYear = new Date().getFullYear();
+
+    for (let i = 1; i <= 12; i++) {
+      const monthName = new Date(currentYear, i - 1, 1).toLocaleString('default', { month: 'short' });
+      const monthlyExpenses = expenses.filter(expense => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate.getFullYear() === currentYear && expenseDate.getMonth() + 1 === i;
+      });
+      const monthlyBudget = budgets
+        .filter(b => b.year === currentYear && b.month === i)
+        .reduce((sum, b) => sum + b.amount, 0);
+      const monthlySpent = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
+      trendData.push({ month: monthName, budget: monthlyBudget, spent: monthlySpent });
+    }
+    return trendData;
+  }, [expenses, budgets]);
+
+  const getFamilyDataByCategory = useCallback((period?: { month: number; year: number }) => {
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
+    return categories.map(category => {
+      const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
+      const familySpent = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const memberData = members.map(member => {
+        const memberExpenses = categoryExpenses.filter(e => e.memberId === member.id);
+        const spentAmount = memberExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const percentage = familySpent > 0 ? (spentAmount / familySpent) * 100 : 0;
+        return {
+          member,
+          spentAmount,
+          percentage
+        };
+      });
+      return {
+        category,
+        familySpent,
+        memberData
+      };
+    }).filter(data => data.familySpent > 0);
+  }, [categories, members, getCurrentMonthExpenses]);
+
 
   return {
     expenses,
@@ -224,6 +357,11 @@ export const useBudgetSupabase = () => {
     loadData,
     getHierarchicalCategoryProgress,
     getDashboardKPIs,
+    cleanDuplicateCategories,
+    getCategoryProgress,
+    getYearTrendData,
+    getFamilyDataByCategory,
+    getCurrentMonthExpenses,
     // (Resto de funciones que ya tenías)
   };
 };
