@@ -10,8 +10,8 @@ export default defineConfig({
 
   // Solo afecta modo dev; puedes dejarlo o quitarlo si quieres
   server: {
-    host: "::",
-    port: 8080,
+    host: "localhost",
+    port: 5173,
   },
 
   plugins: [

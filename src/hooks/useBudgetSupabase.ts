@@ -181,6 +181,36 @@ export const useBudgetSupabase = () => {
     return hierarchicalData;
   }, [categories, budgets, expenses, getCurrentMonthExpenses]);
 
+  const getDashboardKPIs = useCallback((period?: { month: number; year: number }): DashboardKPIs => {
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+
+    // Presupuesto total del mes
+    const totalBudget = budgets
+      .filter(b => b.year === targetYear && b.month === targetMonth)
+      .reduce((sum, b) => sum + b.amount, 0);
+
+    // Gasto total del mes
+    const totalSpent = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    const remaining = totalBudget - totalSpent;
+    const percentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+    let status: 'success' | 'warning' | 'danger' = 'success';
+    if (percentage >= 100) status = 'danger';
+    else if (percentage >= 80) status = 'warning';
+
+    return {
+      totalBudget,
+      totalSpent,
+      remaining,
+      percentage,
+      status,
+      currency,
+    };
+  }, [getCurrentMonthExpenses, budgets, currency]);
+
 
   return {
     expenses,
@@ -193,6 +223,7 @@ export const useBudgetSupabase = () => {
     addExpense,
     loadData,
     getHierarchicalCategoryProgress,
+    getDashboardKPIs,
     // (Resto de funciones que ya tenías)
   };
 };
