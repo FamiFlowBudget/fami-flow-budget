@@ -41,9 +41,102 @@ export default function Reports() {
   const familyData = getFamilyDataByCategory(period);
   const currentMonthExpenses = getCurrentMonthExpenses(period);
 
-  // No hay necesidad de calcular distributionData, memberStackedData, etc. aquí
-  // Los componentes individuales pueden obtener los datos que necesitan del hook
-  // o los datos ya calculados como `kpis`, `categoryProgress`, etc.
+  // Datos para distribución (donut)
+  const distributionData = categories.map((cat, i) => {
+    const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === cat.id);
+    const amount = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalAmount = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const percentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
+
+    return {
+      categoryId: cat.id,
+      categoryName: cat.name,
+      amount,
+      percentage,
+      color: `hsl(${i * 137.5 % 360}, 70%, 50%)`
+    };
+  }).filter(item => item.amount > 0);
+
+  // Datos para miembros stacked
+  const memberStackedData = familyData.map(fd => ({
+    category: fd.category.name,
+    members: fd.memberData.map((md, i) => ({
+      memberId: md.member.id,
+      memberName: md.member.name,
+      amount: md.spentAmount,
+      percentage: md.percentage,
+      color: `hsl(${i * 137.5 % 360}, 70%, 50%)`
+    })),
+    total: fd.familySpent
+  }));
+
+  // Datos para cards de miembros
+  const memberCardsData = members.map(member => {
+    const memberExpenses = currentMonthExpenses.filter(e => e.memberId === member.id);
+    const monthlySpent = memberExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const monthlyBudget = 100000; // Mock budget
+    const percentage = monthlyBudget > 0 ? (monthlySpent / monthlyBudget) * 100 : 0;
+
+    let status: 'success' | 'warning' | 'danger' = 'success';
+    if (percentage >= 90) status = 'danger';
+    else if (percentage >= 75) status = 'warning';
+
+    return {
+      id: member.id,
+      name: member.name,
+      photoUrl: member.photoUrl,
+      role: member.role,
+      monthlySpent,
+      monthlyBudget,
+      percentage,
+      status,
+      variance: monthlyBudget - monthlySpent,
+      expenseCount: memberExpenses.length,
+      topCategories: categories.slice(0, 3).map((cat, i) => ({
+        categoryName: cat.name,
+        amount: Math.random() * monthlySpent * 0.3,
+        color: `hsl(${i * 137.5 % 360}, 70%, 50%)`
+      })),
+      last6Months: Array.from({ length: 6 }, (_, i) => ({
+        month: new Date(0, i).toLocaleDateString('es-CL', { month: 'short' }),
+        spent: Math.random() * monthlySpent
+      }))
+    };
+  });
+
+  // Datos para waterfall de varianza
+  const waterfallData = yearTrendData.map(ytd => ({
+    ...ytd,
+    variance: ytd.budget - ytd.spent,
+    isPositive: ytd.budget >= ytd.spent,
+    cumulativeVariance: ytd.budget - ytd.spent // Simplificado
+  }));
+
+  // Datos para heatmap
+  const heatmapData = categories.map(category => ({
+    categoryId: category.id,
+    categoryName: category.name,
+    monthlyData: Array.from({ length: 12 }, (_, monthIndex) => {
+      const month = monthIndex + 1;
+      const monthName = new Date(0, monthIndex).toLocaleDateString('es-CL', { month: 'short' });
+      const budget = Math.random() * 100000;
+      const spent = Math.random() * budget * 1.2;
+      const percentage = budget > 0 ? (spent / budget) * 100 : 0;
+
+      let status: 'success' | 'warning' | 'danger' = 'success';
+      if (percentage >= 90) status = 'danger';
+      else if (percentage >= 75) status = 'warning';
+
+      return {
+        month,
+        monthName,
+        budget,
+        spent,
+        percentage,
+        status
+      };
+    })
+  }));
 
   const exportReport = () => {
     // Mock export functionality
@@ -84,7 +177,7 @@ export default function Reports() {
             <div className="grid gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <DonutDistribution 
-                  data={categoryProgress}
+                  data={distributionData}
                   currency="CLP"
                   title="Distribución de Gastos"
                 />
@@ -118,7 +211,7 @@ export default function Reports() {
             />
             
             <VarianceWaterfall 
-              data={yearTrendData}
+              data={waterfallData}
               currency="CLP"
               year={period.year}
               onMonthClick={(month, year) => setPeriod({ month, year })}
@@ -127,7 +220,7 @@ export default function Reports() {
 
           <TabsContent value="analytics" className="space-y-6">
             <CategoryMonthHeatmap 
-              data={yearTrendData}
+              data={heatmapData}
               currency="CLP"
               year={period.year}
             />
@@ -199,16 +292,12 @@ export default function Reports() {
 
           <TabsContent value="family" className="space-y-6">
             <MemberCards 
-              members={members.map(m => ({
-                name: m.name,
-                totalSpent: familyData.find(fd => fd.name === m.name)?.totalSpent || 0,
-                expenseCount: familyData.find(fd => fd.name === m.name)?.expenseCount || 0,
-              }))}
+              members={memberCardsData}
               currency="CLP"
             />
 
             <MemberStacked 
-              data={familyData}
+              data={memberStackedData}
               currency="CLP"
             />
           </TabsContent>

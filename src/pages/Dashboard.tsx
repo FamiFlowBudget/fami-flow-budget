@@ -21,6 +21,7 @@ export default function Dashboard() {
     getHierarchicalCategoryProgress, // <<<--- CAMBIO: Usamos la nueva función
     getYearTrendData, 
     getDailyBurnData,
+    getFamilyDataByCategory,
     getCurrentMonthExpenses,
     budgets,
     expenses, 
@@ -38,12 +39,7 @@ export default function Dashboard() {
   const yearTrendData = useMemo(() => getYearTrendData(period.year), [getYearTrendData, period.year]);
   const dailyBurnData = useMemo(() => getDailyBurnData(period), [getDailyBurnData, period]);
   const currentMonthExpenses = useMemo(() => getCurrentMonthExpenses(period), [getCurrentMonthExpenses, period]);
-
-  // (El resto de los cálculos para los otros gráficos no cambian)
-  const distributionData = useMemo(() => { /* ... */ }, [categories, currentMonthExpenses]);
-  const memberStackedData = useMemo(() => { /* ... */ }, [currentMonthExpenses, categories, members]);
-  const memberCardsData = useMemo(() => { /* ... */ }, [members, currentMonthExpenses, budgets, period, categories]);
-
+  const familyData = useMemo(() => getFamilyDataByCategory(period), [getFamilyDataByCategory, period]);
 
   return (
       <div className="space-y-6 p-6">
@@ -64,7 +60,7 @@ export default function Dashboard() {
             <KpiCards data={{ ...kpis, expenseCount: expenses.length }} isLoading={loading} />
             <div className="grid gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2">
-                <DonutDistribution data={distributionData} currency={currency} title="Distribución del Mes" isLoading={loading} />
+                <DonutDistribution data={categoryProgress} currency={currency} title="Distribución del Mes" isLoading={loading} />
               </div>
               <AlertsList categories={categoryProgress} currency={currency} isLoading={loading} />
             </div>
@@ -72,7 +68,7 @@ export default function Dashboard() {
               <CategoryProgress categories={categoryProgress} isLoading={loading} />
               <DailyBurnSparkline data={dailyBurnData} currency={currency} monthBudget={kpis.totalBudget} totalSpent={kpis.totalSpent} isLoading={loading} />
             </div>
-            <MemberStacked data={memberStackedData} currency={currency} isLoading={loading} />
+            <MemberStacked data={familyData} currency={currency} isLoading={loading} />
           </TabsContent>
         {/* ... (resto de las pestañas) ... */}
         </Tabs>
