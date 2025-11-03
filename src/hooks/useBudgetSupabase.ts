@@ -181,6 +181,7 @@ export const useBudgetSupabase = () => {
   }, [currentFamily, toast, loadData]);
 
   const getCurrentMonthExpenses = useCallback((period?: { month: number; year: number }) => {
+    if (!expenses) return [];
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
     return expenses.filter(expense => {
@@ -190,6 +191,7 @@ export const useBudgetSupabase = () => {
   }, [expenses]);
 
   const getHierarchicalCategoryProgress = useCallback((period?: { month: number; year: number }): HierarchicalBudgetProgress[] => {
+    if (!categories || !budgets || !expenses) return [];
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
     const currentMonthExpenses = getCurrentMonthExpenses(period);
@@ -258,6 +260,10 @@ export const useBudgetSupabase = () => {
   }, [categories, budgets, expenses, getCurrentMonthExpenses]);
 
   const getDashboardKPIs = useCallback((period?: { month: number; year: number }): DashboardKPIs => {
+    if (!budgets || !expenses) return {
+      totalBudget: 0, totalSpent: 0, remaining: 0,
+      percentage: 0, status: 'success', currency: ''
+    };
     const currentMonthExpenses = getCurrentMonthExpenses(period);
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
@@ -288,6 +294,7 @@ export const useBudgetSupabase = () => {
   }, [getCurrentMonthExpenses, budgets, currency]);
 
   const getCategoryProgress = useCallback((period?: { month: number; year: number }): BudgetProgress[] => {
+    if (!categories || !budgets || !expenses) return [];
     const currentMonthExpenses = getCurrentMonthExpenses(period);
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
@@ -323,6 +330,7 @@ export const useBudgetSupabase = () => {
   }, [categories, budgets, getCurrentMonthExpenses]);
 
   const getYearTrendData = useCallback(() => {
+    if (!expenses || !budgets) return [];
     const trendData: { month: string; budget: number; spent: number }[] = [];
     const currentYear = new Date().getFullYear();
 
@@ -342,6 +350,7 @@ export const useBudgetSupabase = () => {
   }, [expenses, budgets]);
 
   const getFamilyDataByCategory = useCallback((period?: { month: number; year: number }) => {
+    if (!categories || !members || !expenses) return [];
     const currentMonthExpenses = getCurrentMonthExpenses(period);
     return categories.map(category => {
       const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
