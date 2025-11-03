@@ -25,18 +25,18 @@ import { AppLayout } from "@/components/layout/AppLayout";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <FiltersProvider>
-      <PeriodProvider>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/invite" element={<Invite />} />
-                  <Route path="/" element={
+<QueryClientProvider client={queryClient}>
+    <BrowserRouter>
+      <FiltersProvider>
+        <PeriodProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/invite" element={<Invite />} />
+                <Route path="/" element={
                   <ProtectedRoute>
                     <AppLayout>
                       <Index />
@@ -108,11 +108,11 @@ const App = () => (
                 } />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </AuthProvider>
-      </PeriodProvider>
-    </FiltersProvider>
+            </TooltipProvider>
+          </AuthProvider>
+        </PeriodProvider>
+      </FiltersProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 

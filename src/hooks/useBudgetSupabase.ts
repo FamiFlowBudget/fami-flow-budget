@@ -364,6 +364,34 @@ export const useBudgetSupabase = () => {
     }).filter(data => data.familySpent > 0);
   }, [categories, members, getCurrentMonthExpenses]);
 
+  const getDailyBurnData = useCallback((period?: { month: number; year: number }) => {
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+    const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
+
+    const dailyData = Array.from({ length: daysInMonth }, (_, i) => ({
+      day: i + 1,
+      spent: 0,
+    }));
+
+    for (const expense of currentMonthExpenses) {
+      const expenseDay = new Date(expense.date).getDate();
+      if (expenseDay > 0 && expenseDay <= daysInMonth) {
+        dailyData[expenseDay - 1].spent += expense.amount;
+      }
+    }
+
+    let cumulativeSpent = 0;
+    return dailyData.map(d => {
+        cumulativeSpent += d.spent;
+        return {
+            day: d.day,
+            spent: cumulativeSpent
+        };
+    });
+  }, [getCurrentMonthExpenses]);
+
 
   return {
     expenses,
@@ -382,6 +410,7 @@ export const useBudgetSupabase = () => {
     getYearTrendData,
     getFamilyDataByCategory,
     getCurrentMonthExpenses,
+    getDailyBurnData,
     // (Resto de funciones que ya tenías)
   };
 };

@@ -79,7 +79,7 @@ export const useFamilies = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   const createFamily = async (name: string, currency: string = 'CLP') => {
     if (!user) return { error: 'Usuario no autenticado' };
