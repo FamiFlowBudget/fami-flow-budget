@@ -1,21 +1,57 @@
 // src/components/import/ImportManagement.tsx
 
 import { useState, useRef } from 'react';
-// ... (otros imports)
+import { supabase } from '@/integrations/supabase/client';
+import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Camera, Upload, Zap, X, Image as ImageIcon } from 'lucide-react';
 import { ExpenseFormDialog } from '@/components/expenses/ExpenseFormDialog'; // Importamos el formulario
 
 export const ImportManagement = () => {
-  // ... (otros useState)
+  const { user, currentFamily } = useBudgetSupabase();
+  const { toast } = useToast();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isCameraOn, setIsCameraOn] = useState(false);
+  const [processingImage, setProcessingImage] = useState(false);
   const [expenseDataForForm, setExpenseDataForForm] = useState<any>(null); // <<<--- Nuevo estado para controlar el formulario
 
-  // ... (la lógica de la cámara no cambia)
-  const startCamera = async () => { /* ... */ };
-  const stopCamera = () => { /* ... */ };
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setIsCameraOn(true);
+      }
+    } catch (err) {
+      console.error("Error accessing camera: ", err);
+      toast({ title: "Error de Cámara", description: "No se pudo acceder a la cámara. Revisa los permisos.", variant: "destructive" });
+    }
+  };
 
-  const captureImage = async () => {
-    if (!videoRef.current || !canvasRef.current || !user || !currentFamily) return;
-    setProcessingImage(true);
-    // ... (lógica para capturar la imagen en un 'blob')
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraOn(false);
+  };
+
+  const captureImage = async () => {
+    if (!videoRef.current || !canvasRef.current || !user || !currentFamily) return;
+    setProcessingImage(true);
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+    }
 
     canvas.toBlob(async (blob) => {
       if (!blob) { /* ... */ return; }
@@ -47,9 +83,53 @@ export const ImportManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* ... (toda la parte visual de la página de importación no cambia) ... */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Upload />
+            Importar Gasto
+          </CardTitle>
+          <CardDescription>
+            Captura una foto de tu boleta o recibo para crear un gasto rápidamente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="relative aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+            <video
+              ref={videoRef}
+              className={`w-full h-full object-cover ${!isCameraOn && 'hidden'}`}
+              playsInline
+            />
+            <canvas ref={canvasRef} className="hidden" />
+            {!isCameraOn && (
+              <div className="text-center text-muted-foreground">
+                <ImageIcon className="w-16 h-16 mx-auto mb-2" />
+                <p>La cámara está apagada</p>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-center gap-2">
+            {!isCameraOn ? (
+              <Button onClick={startCamera}>
+                <Camera className="w-4 h-4 mr-2" />
+                Activar Cámara
+              </Button>
+            ) : (
+              <>
+                <Button onClick={captureImage} disabled={processingImage}>
+                  <Zap className="w-4 h-4 mr-2" />
+                  {processingImage ? 'Procesando...' : 'Capturar y Continuar'}
+                </Button>
+                <Button variant="outline" onClick={stopCamera}>
+                  <X className="w-4 h-4 mr-2" />
+                  Apagar Cámara
+                </Button>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* <<<--- AÑADIMOS EL DIÁLOGO DEL FORMULARIO AQUÍ ---<<< */}
       {expenseDataForForm && (
         <ExpenseFormDialog
           isOpen={!!expenseDataForForm}

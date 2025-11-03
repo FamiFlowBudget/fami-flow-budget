@@ -107,34 +107,51 @@ export const useBudgetSupabase = () => {
   const cleanDuplicateCategories = useCallback(async () => {
     if (!currentFamily) return;
 
+    setLoading(true);
     try {
-      // 1. Obtener todas las categorías de la familia
       const { data: allCategories, error: fetchError } = await supabase
         .from('categories')
-        .select('id, name, parentId, family_id')
+        .select('id, name, parent_id')
         .eq('family_id', currentFamily.id);
 
       if (fetchError) throw fetchError;
 
-      // 2. Identificar duplicados (mismo nombre y mismo parentId)
       const uniqueCategories = new Map<string, Category>();
-      const duplicatesToDelete: string[] = [];
+      const mergeMap = new Map<string, string>(); // Map<duplicateId, primaryId>
 
       for (const category of allCategories) {
-        const key = `${category.name.trim().toLowerCase()}-${category.parentId || 'null'}`;
+        const key = `${category.name.trim().toLowerCase()}-${category.parent_id || 'null'}`;
         if (uniqueCategories.has(key)) {
-          duplicatesToDelete.push(category.id);
+          const primaryCategory = uniqueCategories.get(key)!;
+          mergeMap.set(category.id, primaryCategory.id);
         } else {
           uniqueCategories.set(key, category);
         }
       }
 
-      if (duplicatesToDelete.length === 0) {
+      if (mergeMap.size === 0) {
         toast({ title: "Sin duplicados", description: "No se encontraron categorías duplicadas." });
+        setLoading(false);
         return;
       }
 
-      // 3. Eliminar los duplicados
+      // Re-asociar gastos y presupuestos
+      const updatePromises = [];
+      for (const [duplicateId, primaryId] of mergeMap.entries()) {
+        updatePromises.push(
+          supabase.from('expenses').update({ category_id: primaryId }).eq('category_id', duplicateId)
+        );
+        updatePromises.push(
+          supabase.from('budgets').update({ category_id: primaryId }).eq('category_id', duplicateId)
+        );
+      }
+
+      const results = await Promise.all(updatePromises);
+      const updateError = results.find(res => res.error);
+      if (updateError) throw updateError.error;
+
+      // Eliminar los duplicados
+      const duplicatesToDelete = Array.from(mergeMap.keys());
       const { error: deleteError } = await supabase
         .from('categories')
         .delete()
@@ -142,12 +159,13 @@ export const useBudgetSupabase = () => {
 
       if (deleteError) throw deleteError;
 
-      // 4. Actualizar el estado local para reflejar los cambios
-      setCategories(prev => prev.filter(c => !duplicatesToDelete.includes(c.id)));
+      // Recargar todos los datos para asegurar la consistencia
+      await loadData();
 
       toast({
         title: "Limpieza completada",
-        description: `Se eliminaron ${duplicatesToDelete.length} categorías duplicadas.`,
+        description: `Se fusionaron y eliminaron ${duplicatesToDelete.length} categorías duplicadas.`,
+        variant: "success",
       });
 
     } catch (error) {
@@ -157,8 +175,10 @@ export const useBudgetSupabase = () => {
         description: "No se pudo completar la limpieza de duplicados.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
-  }, [currentFamily, toast]);
+  }, [currentFamily, toast, loadData]);
 
   const getCurrentMonthExpenses = useCallback((period?: { month: number; year: number }) => {
     const targetMonth = period?.month || (new Date().getMonth() + 1);
