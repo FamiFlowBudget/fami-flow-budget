@@ -104,84 +104,7 @@ export const useBudgetSupabase = () => {
     return null;
   }, [user, currentFamily, toast]);
 
-  const cleanDuplicateCategories = useCallback(async () => {
-    if (!currentFamily) return;
-
-    setLoading(true);
-    try {
-      const { data: allCategories, error: fetchError } = await supabase
-        .from('categories')
-        .select('id, name, parent_id')
-        .eq('family_id', currentFamily.id);
-
-      if (fetchError) throw fetchError;
-
-      const uniqueCategories = new Map<string, Category>();
-      const mergeMap = new Map<string, string>(); // Map<duplicateId, primaryId>
-
-      for (const category of allCategories) {
-        const key = `${category.name.trim().toLowerCase()}-${category.parent_id || 'null'}`;
-        if (uniqueCategories.has(key)) {
-          const primaryCategory = uniqueCategories.get(key)!;
-          mergeMap.set(category.id, primaryCategory.id);
-        } else {
-          uniqueCategories.set(key, category);
-        }
-      }
-
-      if (mergeMap.size === 0) {
-        toast({ title: "Sin duplicados", description: "No se encontraron categorías duplicadas." });
-        setLoading(false);
-        return;
-      }
-
-      // Re-asociar gastos y presupuestos
-      const updatePromises = [];
-      for (const [duplicateId, primaryId] of mergeMap.entries()) {
-        updatePromises.push(
-          supabase.from('expenses').update({ category_id: primaryId }).eq('category_id', duplicateId)
-        );
-        updatePromises.push(
-          supabase.from('budgets').update({ category_id: primaryId }).eq('category_id', duplicateId)
-        );
-      }
-
-      const results = await Promise.all(updatePromises);
-      const updateError = results.find(res => res.error);
-      if (updateError) throw updateError.error;
-
-      // Eliminar los duplicados
-      const duplicatesToDelete = Array.from(mergeMap.keys());
-      const { error: deleteError } = await supabase
-        .from('categories')
-        .delete()
-        .in('id', duplicatesToDelete);
-
-      if (deleteError) throw deleteError;
-
-      // Recargar todos los datos para asegurar la consistencia
-      await loadData();
-
-      toast({
-        title: "Limpieza completada",
-        description: `Se fusionaron y eliminaron ${duplicatesToDelete.length} categorías duplicadas.`,
-        variant: "success",
-      });
-
-    } catch (error) {
-      console.error('Error limpiando categorías duplicadas:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo completar la limpieza de duplicados.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [currentFamily, toast, loadData]);
-
   const getCurrentMonthExpenses = useCallback((period?: { month: number; year: number }) => {
-    if (!expenses) return [];
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
     return expenses.filter(expense => {
@@ -191,7 +114,6 @@ export const useBudgetSupabase = () => {
   }, [expenses]);
 
   const getHierarchicalCategoryProgress = useCallback((period?: { month: number; year: number }): HierarchicalBudgetProgress[] => {
-    if (!categories || !budgets || !expenses) return [];
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
     const currentMonthExpenses = getCurrentMonthExpenses(period);
@@ -259,148 +181,6 @@ export const useBudgetSupabase = () => {
     return hierarchicalData;
   }, [categories, budgets, expenses, getCurrentMonthExpenses]);
 
-  const getDashboardKPIs = useCallback((period?: { month: number; year: number }): DashboardKPIs => {
-    if (!budgets || !expenses) return {
-      totalBudget: 0, totalSpent: 0, remaining: 0,
-      percentage: 0, status: 'success', currency: ''
-    };
-    const currentMonthExpenses = getCurrentMonthExpenses(period);
-    const targetMonth = period?.month || (new Date().getMonth() + 1);
-    const targetYear = period?.year || new Date().getFullYear();
-
-    // Presupuesto total del mes
-    const totalBudget = budgets
-      .filter(b => b.year === targetYear && b.month === targetMonth)
-      .reduce((sum, b) => sum + b.amount, 0);
-
-    // Gasto total del mes
-    const totalSpent = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
-
-    const remaining = totalBudget - totalSpent;
-    const percentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-
-    let status: 'success' | 'warning' | 'danger' = 'success';
-    if (percentage >= 100) status = 'danger';
-    else if (percentage >= 80) status = 'warning';
-
-    return {
-      totalBudget,
-      totalSpent,
-      remaining,
-      percentage,
-      status,
-      currency,
-    };
-  }, [getCurrentMonthExpenses, budgets, currency]);
-
-  const getCategoryProgress = useCallback((period?: { month: number; year: number }): BudgetProgress[] => {
-    if (!categories || !budgets || !expenses) return [];
-    const currentMonthExpenses = getCurrentMonthExpenses(period);
-    const targetMonth = period?.month || (new Date().getMonth() + 1);
-    const targetYear = period?.year || new Date().getFullYear();
-
-    return categories.map(category => {
-      // Buscar presupuesto para esta categoría/mes
-      const budget = budgets.find(b =>
-        b.categoryId === category.id &&
-        b.year === targetYear &&
-        b.month === targetMonth
-      );
-
-      // Sumar gastos de esta categoría
-      const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
-      const spentAmount = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
-
-      const budgetAmount = budget?.amount || 0;
-      const percentage = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
-
-      let status: 'success' | 'warning' | 'danger' = 'success';
-      if (percentage >= 90) status = 'danger';
-      else if (percentage >= 75) status = 'warning';
-
-      return {
-        categoryId: category.id,
-        categoryName: category.name,
-        budgetAmount,
-        spentAmount,
-        percentage,
-        status,
-      };
-    }).filter(p => p.budgetAmount > 0); // Solo mostrar categorías con presupuesto
-  }, [categories, budgets, getCurrentMonthExpenses]);
-
-  const getYearTrendData = useCallback(() => {
-    if (!expenses || !budgets) return [];
-    const trendData: { month: string; budget: number; spent: number }[] = [];
-    const currentYear = new Date().getFullYear();
-
-    for (let i = 1; i <= 12; i++) {
-      const monthName = new Date(currentYear, i - 1, 1).toLocaleString('default', { month: 'short' });
-      const monthlyExpenses = expenses.filter(expense => {
-        const expenseDate = new Date(expense.date);
-        return expenseDate.getFullYear() === currentYear && expenseDate.getMonth() + 1 === i;
-      });
-      const monthlyBudget = budgets
-        .filter(b => b.year === currentYear && b.month === i)
-        .reduce((sum, b) => sum + b.amount, 0);
-      const monthlySpent = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
-      trendData.push({ month: monthName, budget: monthlyBudget, spent: monthlySpent });
-    }
-    return trendData;
-  }, [expenses, budgets]);
-
-  const getFamilyDataByCategory = useCallback((period?: { month: number; year: number }) => {
-    if (!categories || !members || !expenses) return [];
-    const currentMonthExpenses = getCurrentMonthExpenses(period);
-    return categories.map(category => {
-      const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
-      const familySpent = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
-      const memberData = members.map(member => {
-        const memberExpenses = categoryExpenses.filter(e => e.memberId === member.id);
-        const spentAmount = memberExpenses.reduce((sum, e) => sum + e.amount, 0);
-        const percentage = familySpent > 0 ? (spentAmount / familySpent) * 100 : 0;
-        return {
-          member,
-          spentAmount,
-          percentage
-        };
-      });
-      return {
-        category,
-        familySpent,
-        memberData
-      };
-    }).filter(data => data.familySpent > 0);
-  }, [categories, members, getCurrentMonthExpenses]);
-
-  const getDailyBurnData = useCallback((period?: { month: number; year: number }) => {
-    const currentMonthExpenses = getCurrentMonthExpenses(period);
-    const targetMonth = period?.month || (new Date().getMonth() + 1);
-    const targetYear = period?.year || new Date().getFullYear();
-    const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
-
-    const dailyData = Array.from({ length: daysInMonth }, (_, i) => ({
-      day: i + 1,
-      spent: 0,
-    }));
-
-    for (const expense of currentMonthExpenses) {
-      const expenseDay = new Date(expense.date).getDate();
-      if (expenseDay > 0 && expenseDay <= daysInMonth) {
-        dailyData[expenseDay - 1].spent += expense.amount;
-      }
-    }
-
-    let cumulativeSpent = 0;
-    return dailyData.map(d => {
-        cumulativeSpent += d.spent;
-        return {
-            day: d.day,
-            spent: cumulativeSpent
-        };
-    });
-  }, [getCurrentMonthExpenses]);
-
 
   return {
     expenses,
@@ -413,13 +193,6 @@ export const useBudgetSupabase = () => {
     addExpense,
     loadData,
     getHierarchicalCategoryProgress,
-    getDashboardKPIs,
-    cleanDuplicateCategories,
-    getCategoryProgress,
-    getYearTrendData,
-    getFamilyDataByCategory,
-    getCurrentMonthExpenses,
-    getDailyBurnData,
     // (Resto de funciones que ya tenías)
   };
 };

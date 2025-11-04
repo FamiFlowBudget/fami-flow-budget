@@ -117,7 +117,6 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      data-testid="signin-email-input"
                     />
                   </div>
                   <div className="space-y-2">
@@ -158,7 +157,6 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      data-testid="signin-email-input"
                     />
                   </div>
                   <div className="space-y-2">
