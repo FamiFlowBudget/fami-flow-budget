@@ -182,6 +182,9 @@ export const useBudgetSupabase = () => {
   }, [categories, budgets, expenses, getCurrentMonthExpenses]);
 
   const getDashboardKPIs = useCallback((period?: { month: number; year: number }): DashboardKPIs => {
+    if (!budgets.length || !expenses.length) {
+      return { totalBudget: 0, totalSpent: 0, exceeded: 0, progress: 0 };
+    }
     const currentMonthExpenses = getCurrentMonthExpenses(period);
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
