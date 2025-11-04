@@ -181,6 +181,68 @@ export const useBudgetSupabase = () => {
     return hierarchicalData;
   }, [categories, budgets, expenses, getCurrentMonthExpenses]);
 
+  const getDashboardKPIs = useCallback((period?: { month: number; year: number }): DashboardKPIs => {
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+
+    const totalSpent = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+    // Considerar solo los presupuestos de categorías principales
+    const mainCategoryIds = categories.filter(c => !c.parentId).map(c => c.id);
+    const subCategoryIds = categories.filter(c => c.parentId).map(c => c.id);
+
+    const totalBudget = budgets
+      .filter(b => b.year === targetYear && b.month === targetMonth)
+      .reduce((sum, b) => {
+        // Solo sumar si es una categoría principal o una subcategoría que no tiene su principal presupuestada
+        const category = categories.find(c => c.id === b.categoryId);
+        if (category && (mainCategoryIds.includes(category.id) || !mainCategoryIds.includes(category.parentId!))) {
+          return sum + b.amount;
+        }
+        return sum;
+      }, 0);
+
+    const exceeded = totalSpent > totalBudget ? totalSpent - totalBudget : 0;
+    const progress = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+    return { totalBudget, totalSpent, exceeded, progress };
+  }, [budgets, expenses, categories, getCurrentMonthExpenses]);
+
+  const getYearTrendData = useCallback(() => {
+    const yearlyData: { [key: string]: { budget: number, spent: number } } = {};
+    const currentYear = new Date().getFullYear();
+
+    for (let month = 1; month <= 12; month++) {
+      const monthName = new Date(currentYear, month - 1, 1).toLocaleString('default', { month: 'short' });
+
+      const monthlyExpenses = expenses.filter(e => {
+        const expenseDate = new Date(e.date);
+        return expenseDate.getFullYear() === currentYear && expenseDate.getMonth() + 1 === month;
+      }).reduce((sum, e) => sum + e.amount, 0);
+
+      const monthlyBudget = budgets.filter(b => b.year === currentYear && b.month === month)
+        .reduce((sum, b) => sum + b.amount, 0);
+
+      yearlyData[monthName] = { budget: monthlyBudget, spent: monthlyExpenses };
+    }
+
+    return Object.entries(yearlyData).map(([name, values]) => ({ name, ...values }));
+  }, [expenses, budgets]);
+
+  const getDailyBurnData = useCallback((period?: { month: number; year: number }) => {
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
+    const daysInMonth = new Date(period?.year || new Date().getFullYear(), period?.month || new Date().getMonth() + 1, 0).getDate();
+    const dailyData = Array.from({ length: daysInMonth }, (_, i) => ({ day: i + 1, total: 0 }));
+
+    currentMonthExpenses.forEach(expense => {
+      const dayOfMonth = new Date(expense.date).getDate();
+      dailyData[dayOfMonth - 1].total += expense.amount;
+    });
+
+    return dailyData;
+  }, [getCurrentMonthExpenses]);
+
 
   return {
     expenses,
@@ -193,6 +255,8 @@ export const useBudgetSupabase = () => {
     addExpense,
     loadData,
     getHierarchicalCategoryProgress,
-    // (Resto de funciones que ya tenías)
+    getDashboardKPIs,
+    getYearTrendData,
+    getDailyBurnData
   };
 };

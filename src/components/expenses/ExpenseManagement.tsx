@@ -6,7 +6,7 @@ import { formatCurrency } from '@/types/budget';
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight, Receipt, User, Edit2, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { ExpenseFormDialog } from './ExpenseFormDialog';
 import { NewExpenseButton } from '@/components/NewExpenseButton';
@@ -14,13 +14,22 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { getCategoryIconById } from '@/lib/icons';
 import { getCategoryPath } from '@/utils/categoryUtils';
-import { ExpenseManagementSkeleton } from "./ExpenseManagementSkeleton"; // <<<--- IMPORTAMOS EL SKELETON
+import { ExpenseManagementSkeleton } from "./ExpenseManagementSkeleton";
+import { usePeriod } from '@/providers/PeriodProvider'; // <<<--- IMPORTAMOS EL HOOK DE PERIODO
 
 export const ExpenseManagement = () => {
   const { expenses, categories, members, currentMember, loading, deleteExpense } = useBudgetSupabase();
+  const { period } = usePeriod(); // <<<--- USAMOS EL HOOK PARA OBTENER EL PERIODO
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const { toast } = useToast();
+
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate.getFullYear() === period.year && expenseDate.getMonth() + 1 === period.month;
+    });
+  }, [expenses, period]);
 
   const handleDeleteExpense = async (expenseId: string, description: string) => {
     try {
@@ -39,26 +48,29 @@ export const ExpenseManagement = () => {
     }
   };
 
-  const organizedExpenses = categories ? categories.map(category => {
-    const categoryExpenses = expenses?.filter(e => e.categoryId === category.id) || [];
-    const categoryTotal = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const memberTotals = members?.map(member => {
-      const memberExpenses = categoryExpenses.filter(e => e.memberId === member.id);
-      return {
-        member,
-        total: memberExpenses.reduce((sum, e) => sum + e.amount, 0),
-        count: memberExpenses.length,
-      };
-    }).filter(m => m.count > 0);
+  const organizedExpenses = useMemo(() => {
+    if (!categories) return [];
+    return categories.map(category => {
+      const categoryExpenses = filteredExpenses.filter(e => e.categoryId === category.id);
+      const categoryTotal = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const memberTotals = members?.map(member => {
+        const memberExpenses = categoryExpenses.filter(e => e.memberId === member.id);
+        return {
+          member,
+          total: memberExpenses.reduce((sum, e) => sum + e.amount, 0),
+          count: memberExpenses.length,
+        };
+      }).filter(m => m.count > 0);
 
-    return {
-      category,
-      categoryTotal,
-      expenses: categoryExpenses,
-      memberTotals,
-      hasData: categoryExpenses.length > 0,
-    };
-  }).filter(ce => ce.hasData) : [];
+      return {
+        category,
+        categoryTotal,
+        expenses: categoryExpenses,
+        memberTotals,
+        hasData: categoryExpenses.length > 0,
+      };
+    }).filter(ce => ce.hasData);
+  }, [categories, filteredExpenses, members]);
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => {
