@@ -104,6 +104,82 @@ export const useBudgetSupabase = () => {
     return null;
   }, [user, currentFamily, toast]);
 
+  const updateExpense = useCallback(async (expenseId: string, updates: Partial<Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'family_id'>>) => {
+    try {
+      const { data, error } = await supabase.from('expenses').update({
+        member_id: updates.memberId, category_id: updates.categoryId, amount: updates.amount, currency: updates.currency,
+        description: updates.description, merchant: updates.merchant, payment_method: updates.paymentMethod,
+        tags: updates.tags, expense_date: updates.date, receipt_url: updates.receiptUrl
+      }).eq('id', expenseId).select().single();
+      if (error) throw error;
+      if (data) {
+        const updatedExpense: Expense = { ...data, memberId: data.member_id, categoryId: data.category_id, paymentMethod: data.payment_method, receiptUrl: data.receipt_url, date: data.expense_date };
+        setExpenses(prev => prev.map(e => e.id === expenseId ? updatedExpense : e));
+        toast({ title: "Gasto actualizado", description: "El gasto se ha actualizado correctamente" });
+      }
+    } catch (error) {
+      console.error('Error actualizando gasto:', error);
+      toast({ title: "Error", description: "No se pudo actualizar el gasto", variant: "destructive" });
+    }
+  }, [toast]);
+
+  const deleteExpense = useCallback(async (expenseId: string) => {
+    try {
+      const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
+      if (error) throw error;
+      setExpenses(prev => prev.filter(e => e.id !== expenseId));
+      toast({ title: "Gasto eliminado", description: "El gasto se ha eliminado correctamente" });
+    } catch (error) {
+      console.error('Error eliminando gasto:', error);
+      toast({ title: "Error", description: "No se pudo eliminar el gasto", variant: "destructive" });
+    }
+  }, [toast]);
+
+  const upsertBudget = useCallback(async (budget: Omit<Budget, 'id' | 'createdAt' | 'updatedAt' | 'family_id'>) => {
+    if (!user || !currentFamily) return;
+    try {
+      const { data, error } = await supabase.from('budgets').upsert({
+        family_id: currentFamily.id,
+        user_id: user.id,
+        category_id: budget.categoryId,
+        member_id: budget.memberId,
+        year: budget.year,
+        month: budget.month,
+        amount: budget.amount,
+        currency: budget.currency
+      }, { onConflict: 'family_id, category_id, member_id, year, month' }).select().single();
+      if (error) throw error;
+      if (data) {
+        const newBudget: Budget = { ...data, categoryId: data.category_id, memberId: data.member_id };
+        setBudgets(prev => {
+          const index = prev.findIndex(b => b.family_id === newBudget.family_id && b.categoryId === newBudget.categoryId && b.memberId === newBudget.memberId && b.year === newBudget.year && b.month === newBudget.month);
+          if (index > -1) {
+            const updated = [...prev];
+            updated[index] = newBudget;
+            return updated;
+          }
+          return [...prev, newBudget];
+        });
+        toast({ title: "Presupuesto guardado", description: "El presupuesto se ha guardado correctamente" });
+      }
+    } catch (error) {
+      console.error('Error guardando presupuesto:', error);
+      toast({ title: "Error", description: "No se pudo guardar el presupuesto", variant: "destructive" });
+    }
+  }, [user, currentFamily, toast]);
+
+  const deleteBudget = useCallback(async (budgetId: string) => {
+    try {
+      const { error } = await supabase.from('budgets').delete().eq('id', budgetId);
+      if (error) throw error;
+      setBudgets(prev => prev.filter(b => b.id !== budgetId));
+      toast({ title: "Presupuesto eliminado", description: "El presupuesto se ha eliminado correctamente" });
+    } catch (error) {
+      console.error('Error eliminando presupuesto:', error);
+      toast({ title: "Error", description: "No se pudo eliminar el presupuesto", variant: "destructive" });
+    }
+  }, [toast]);
+
   const getCurrentMonthExpenses = useCallback((period?: { month: number; year: number }) => {
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
@@ -256,6 +332,10 @@ export const useBudgetSupabase = () => {
     currency,
     loading,
     addExpense,
+    updateExpense,
+    deleteExpense,
+    upsertBudget,
+    deleteBudget,
     loadData,
     getHierarchicalCategoryProgress,
     getDashboardKPIs,
