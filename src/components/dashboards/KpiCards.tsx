@@ -114,7 +114,7 @@ export const KpiCards = ({ data }: KpiCardsProps) => {
         <CardContent>
           <div className="space-y-3">
             <div className={`text-2xl font-bold ${getStatusColor(data.status)}`}>
-              {data.percentage.toFixed(1)}%
+              {(data.percentage || 0).toFixed(1)}%
             </div>
             <Progress 
               value={Math.min(data.percentage, 100)} 
