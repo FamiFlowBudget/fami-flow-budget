@@ -141,8 +141,8 @@ export const useBudgetSupabase = () => {
       const { data, error } = await supabase.from('budgets').upsert({
         family_id: currentFamily.id,
         user_id: user.id,
-        category_id: budget.categoryId,
-        member_id: budget.memberId,
+        category_id: budget.category_id,
+        member_id: budget.member_id,
         year: budget.year,
         month: budget.month,
         amount: budget.amount,
@@ -150,9 +150,9 @@ export const useBudgetSupabase = () => {
       }, { onConflict: 'family_id, category_id, member_id, year, month' }).select().single();
       if (error) throw error;
       if (data) {
-        const newBudget: Budget = { ...data, categoryId: data.category_id, memberId: data.member_id };
+        const newBudget: Budget = { ...data, category_id: data.category_id, member_id: data.member_id };
         setBudgets(prev => {
-          const index = prev.findIndex(b => b.family_id === newBudget.family_id && b.categoryId === newBudget.categoryId && b.memberId === newBudget.memberId && b.year === newBudget.year && b.month === newBudget.month);
+          const index = prev.findIndex(b => b.family_id === newBudget.family_id && b.category_id === newBudget.category_id && b.member_id === newBudget.member_id && b.year === newBudget.year && b.month === newBudget.month);
           if (index > -1) {
             const updated = [...prev];
             updated[index] = newBudget;
