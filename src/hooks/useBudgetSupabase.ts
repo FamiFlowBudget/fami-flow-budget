@@ -116,11 +116,13 @@ export const useBudgetSupabase = () => {
         const updatedExpense: Expense = { ...data, memberId: data.member_id, categoryId: data.category_id, paymentMethod: data.payment_method, receiptUrl: data.receipt_url, date: data.expense_date };
         setExpenses(prev => prev.map(e => e.id === expenseId ? updatedExpense : e));
         toast({ title: "Gasto actualizado", description: "El gasto se ha actualizado correctamente" });
+        return updatedExpense;
       }
     } catch (error) {
       console.error('Error actualizando gasto:', error);
       toast({ title: "Error", description: "No se pudo actualizar el gasto", variant: "destructive" });
     }
+    return null;
   }, [toast]);
 
   const deleteExpense = useCallback(async (expenseId: string) => {
@@ -137,8 +139,24 @@ export const useBudgetSupabase = () => {
 
   const upsertBudget = useCallback(async (budget: Omit<Budget, 'id' | 'createdAt' | 'updatedAt' | 'family_id'>) => {
     if (!user || !currentFamily) return;
+
     try {
-      const { data, error } = await supabase.from('budgets').upsert({
+      // Primero, buscar si ya existe un presupuesto con los mismos criterios
+      const { data: existingBudget, error: selectError } = await supabase
+        .from('budgets')
+        .select('id')
+        .eq('family_id', currentFamily.id)
+        .eq('category_id', budget.category_id)
+        .eq('member_id', budget.member_id)
+        .eq('year', budget.year)
+        .eq('month', budget.month)
+        .maybeSingle();
+
+      if (selectError) throw selectError;
+
+      let data, error;
+
+      const budgetData = {
         family_id: currentFamily.id,
         user_id: user.id,
         category_id: budget.category_id,
@@ -147,12 +165,22 @@ export const useBudgetSupabase = () => {
         month: budget.month,
         amount: budget.amount,
         currency: budget.currency
-      }, { onConflict: 'family_id, category_id, member_id, year, month' }).select().single();
+      };
+
+      if (existingBudget) {
+        // Si existe, actualizarlo
+        ({ data, error } = await supabase.from('budgets').update(budgetData).eq('id', existingBudget.id).select().single());
+      } else {
+        // Si no existe, insertarlo
+        ({ data, error } = await supabase.from('budgets').insert(budgetData).select().single());
+      }
+     
       if (error) throw error;
+
       if (data) {
         const newBudget: Budget = { ...data, category_id: data.category_id, member_id: data.member_id };
         setBudgets(prev => {
-          const index = prev.findIndex(b => b.family_id === newBudget.family_id && b.category_id === newBudget.category_id && b.member_id === newBudget.member_id && b.year === newBudget.year && b.month === newBudget.month);
+          const index = prev.findIndex(b => b.id === newBudget.id);
           if (index > -1) {
             const updated = [...prev];
             updated[index] = newBudget;
