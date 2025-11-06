@@ -104,6 +104,110 @@ export const useBudgetSupabase = () => {
     return null;
   }, [user, currentFamily, toast]);
 
+  const updateExpense = useCallback(async (expenseId: string, updates: Partial<Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'family_id'>>) => {
+    try {
+      const { data, error } = await supabase.from('expenses').update({
+        member_id: updates.memberId, category_id: updates.categoryId, amount: updates.amount, currency: updates.currency,
+        description: updates.description, merchant: updates.merchant, payment_method: updates.paymentMethod,
+        tags: updates.tags, expense_date: updates.date, receipt_url: updates.receiptUrl
+      }).eq('id', expenseId).select().single();
+      if (error) throw error;
+      if (data) {
+        const updatedExpense: Expense = { ...data, memberId: data.member_id, categoryId: data.category_id, paymentMethod: data.payment_method, receiptUrl: data.receipt_url, date: data.expense_date };
+        setExpenses(prev => prev.map(e => e.id === expenseId ? updatedExpense : e));
+        toast({ title: "Gasto actualizado", description: "El gasto se ha actualizado correctamente" });
+        return updatedExpense;
+      }
+    } catch (error) {
+      console.error('Error actualizando gasto:', error);
+      toast({ title: "Error", description: "No se pudo actualizar el gasto", variant: "destructive" });
+    }
+    return null;
+  }, [toast]);
+
+  const deleteExpense = useCallback(async (expenseId: string) => {
+    try {
+      const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
+      if (error) throw error;
+      setExpenses(prev => prev.filter(e => e.id !== expenseId));
+      toast({ title: "Gasto eliminado", description: "El gasto se ha eliminado correctamente" });
+    } catch (error) {
+      console.error('Error eliminando gasto:', error);
+      toast({ title: "Error", description: "No se pudo eliminar el gasto", variant: "destructive" });
+    }
+  }, [toast]);
+
+  const upsertBudget = useCallback(async (budget: Omit<Budget, 'id' | 'createdAt' | 'updatedAt' | 'family_id'>) => {
+    if (!user || !currentFamily) return;
+
+    try {
+      // Primero, buscar si ya existe un presupuesto con los mismos criterios
+      const { data: existingBudget, error: selectError } = await supabase
+        .from('budgets')
+        .select('id')
+        .eq('family_id', currentFamily.id)
+        .eq('category_id', budget.category_id)
+        .eq('member_id', budget.member_id)
+        .eq('year', budget.year)
+        .eq('month', budget.month)
+        .maybeSingle();
+
+      if (selectError) throw selectError;
+
+      let data, error;
+
+      const budgetData = {
+        family_id: currentFamily.id,
+        user_id: user.id,
+        category_id: budget.category_id,
+        member_id: budget.member_id,
+        year: budget.year,
+        month: budget.month,
+        amount: budget.amount,
+        currency: budget.currency
+      };
+
+      if (existingBudget) {
+        // Si existe, actualizarlo
+        ({ data, error } = await supabase.from('budgets').update(budgetData).eq('id', existingBudget.id).select().single());
+      } else {
+        // Si no existe, insertarlo
+        ({ data, error } = await supabase.from('budgets').insert(budgetData).select().single());
+      }
+     
+      if (error) throw error;
+
+      if (data) {
+        const newBudget: Budget = { ...data, category_id: data.category_id, member_id: data.member_id };
+        setBudgets(prev => {
+          const index = prev.findIndex(b => b.id === newBudget.id);
+          if (index > -1) {
+            const updated = [...prev];
+            updated[index] = newBudget;
+            return updated;
+          }
+          return [...prev, newBudget];
+        });
+        toast({ title: "Presupuesto guardado", description: "El presupuesto se ha guardado correctamente" });
+      }
+    } catch (error) {
+      console.error('Error guardando presupuesto:', error);
+      toast({ title: "Error", description: "No se pudo guardar el presupuesto", variant: "destructive" });
+    }
+  }, [user, currentFamily, toast]);
+
+  const deleteBudget = useCallback(async (budgetId: string) => {
+    try {
+      const { error } = await supabase.from('budgets').delete().eq('id', budgetId);
+      if (error) throw error;
+      setBudgets(prev => prev.filter(b => b.id !== budgetId));
+      toast({ title: "Presupuesto eliminado", description: "El presupuesto se ha eliminado correctamente" });
+    } catch (error) {
+      console.error('Error eliminando presupuesto:', error);
+      toast({ title: "Error", description: "No se pudo eliminar el presupuesto", variant: "destructive" });
+    }
+  }, [toast]);
+
   const getCurrentMonthExpenses = useCallback((period?: { month: number; year: number }) => {
     const targetMonth = period?.month || (new Date().getMonth() + 1);
     const targetYear = period?.year || new Date().getFullYear();
@@ -181,6 +285,71 @@ export const useBudgetSupabase = () => {
     return hierarchicalData;
   }, [categories, budgets, expenses, getCurrentMonthExpenses]);
 
+  const getDashboardKPIs = useCallback((period?: { month: number; year: number }): DashboardKPIs => {
+    if (!budgets.length || !expenses.length) {
+      return { totalBudget: 0, totalSpent: 0, exceeded: 0, progress: 0 };
+    }
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
+    const targetMonth = period?.month || (new Date().getMonth() + 1);
+    const targetYear = period?.year || new Date().getFullYear();
+
+    const totalSpent = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+    // Considerar solo los presupuestos de categorías principales
+    const mainCategoryIds = categories.filter(c => !c.parentId).map(c => c.id);
+    const subCategoryIds = categories.filter(c => c.parentId).map(c => c.id);
+
+    const totalBudget = budgets
+      .filter(b => b.year === targetYear && b.month === targetMonth)
+      .reduce((sum, b) => {
+        // Solo sumar si es una categoría principal o una subcategoría que no tiene su principal presupuestada
+        const category = categories.find(c => c.id === b.categoryId);
+        if (category && (mainCategoryIds.includes(category.id) || !mainCategoryIds.includes(category.parentId!))) {
+          return sum + b.amount;
+        }
+        return sum;
+      }, 0);
+
+    const exceeded = totalSpent > totalBudget ? totalSpent - totalBudget : 0;
+    const progress = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+    return { totalBudget, totalSpent, exceeded, progress };
+  }, [budgets, expenses, categories, getCurrentMonthExpenses]);
+
+  const getYearTrendData = useCallback(() => {
+    const yearlyData: { [key: string]: { budget: number, spent: number } } = {};
+    const currentYear = new Date().getFullYear();
+
+    for (let month = 1; month <= 12; month++) {
+      const monthName = new Date(currentYear, month - 1, 1).toLocaleString('default', { month: 'short' });
+
+      const monthlyExpenses = expenses.filter(e => {
+        const expenseDate = new Date(e.date);
+        return expenseDate.getFullYear() === currentYear && expenseDate.getMonth() + 1 === month;
+      }).reduce((sum, e) => sum + e.amount, 0);
+
+      const monthlyBudget = budgets.filter(b => b.year === currentYear && b.month === month)
+        .reduce((sum, b) => sum + b.amount, 0);
+
+      yearlyData[monthName] = { budget: monthlyBudget, spent: monthlyExpenses };
+    }
+
+    return Object.entries(yearlyData).map(([name, values]) => ({ name, ...values }));
+  }, [expenses, budgets]);
+
+  const getDailyBurnData = useCallback((period?: { month: number; year: number }) => {
+    const currentMonthExpenses = getCurrentMonthExpenses(period);
+    const daysInMonth = new Date(period?.year || new Date().getFullYear(), period?.month || new Date().getMonth() + 1, 0).getDate();
+    const dailyData = Array.from({ length: daysInMonth }, (_, i) => ({ day: i + 1, total: 0 }));
+
+    currentMonthExpenses.forEach(expense => {
+      const dayOfMonth = new Date(expense.date).getDate();
+      dailyData[dayOfMonth - 1].total += expense.amount;
+    });
+
+    return dailyData;
+  }, [getCurrentMonthExpenses]);
+
 
   return {
     expenses,
@@ -191,8 +360,14 @@ export const useBudgetSupabase = () => {
     currency,
     loading,
     addExpense,
+    updateExpense,
+    deleteExpense,
+    upsertBudget,
+    deleteBudget,
     loadData,
     getHierarchicalCategoryProgress,
-    // (Resto de funciones que ya tenías)
+    getDashboardKPIs,
+    getYearTrendData,
+    getDailyBurnData
   };
 };

@@ -13,7 +13,6 @@ import { VarianceWaterfall } from '@/components/dashboards/VarianceWaterfall';
 import { CategoryMonthHeatmap } from '@/components/dashboards/CategoryMonthHeatmap';
 import { MemberCards } from '@/components/dashboards/MemberCards';
 import { DashboardFilters } from '@/components/filters/DashboardFilters';
-import { FiltersProvider } from '@/providers/FiltersProvider';
 import { useBudgetSupabase } from '@/hooks/useBudgetSupabase';
 import { usePeriod } from '@/providers/PeriodProvider';
 import { BarChart2, TrendingUp, Calendar, PieChart, FileText, Download } from "lucide-react";
@@ -21,133 +20,129 @@ import { BarChart2, TrendingUp, Calendar, PieChart, FileText, Download } from "l
 export default function Reports() {
   const { 
     getDashboardKPIs, 
-    getCategoryProgress, 
+    getHierarchicalCategoryProgress,
     getYearTrendData, 
     getDailyBurnData,
-    getFamilyDataByCategory,
     expenses, 
     categories, 
     members,
-    getCurrentMonthExpenses 
+    currency,
+    loading
   } = useBudgetSupabase();
   const { period, setPeriod } = usePeriod();
   const [activeTab, setActiveTab] = useState('financial');
 
   // Datos reales del dashboard
   const kpis = getDashboardKPIs(period);
-  const categoryProgress = getCategoryProgress(period);
+  const categoryProgress = getHierarchicalCategoryProgress(period);
   const yearTrendData = getYearTrendData();
   const dailyBurnData = getDailyBurnData(period);
-  const familyData = getFamilyDataByCategory(period);
-  const currentMonthExpenses = getCurrentMonthExpenses(period);
+
+  const currentMonthExpenses = expenses.filter(expense => {
+    const expenseDate = new Date(expense.date);
+    return expenseDate.getFullYear() === period.year && expenseDate.getMonth() + 1 === period.month;
+  });
 
   // Datos para distribución (donut)
-  const distributionData = categories.map((cat, i) => {
-    const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === cat.id);
-    const amount = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalAmount = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const percentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
-    
-    return {
-      categoryId: cat.id,
-      categoryName: cat.name,
-      amount,
-      percentage,
-      color: `hsl(${i * 137.5 % 360}, 70%, 50%)`
-    };
-  }).filter(item => item.amount > 0);
+  const distributionData = categoryProgress.map(cat => ({
+    name: cat.categoryName,
+    value: cat.spentAmount,
+  })).filter(item => item.value > 0);
 
   // Datos para miembros stacked
-  const memberStackedData = familyData.map(fd => ({
-    category: fd.category.name,
-    members: fd.memberData.map((md, i) => ({
-      memberId: md.member.id,
-      memberName: md.member.name,
-      amount: md.spentAmount,
-      percentage: md.percentage,
-      color: `hsl(${i * 137.5 % 360}, 70%, 50%)`
-    })),
-    total: fd.familySpent
-  }));
+  const memberStackedData = (() => {
+    const mainCategories = categories.filter(c => !c.parentId);
+    return mainCategories.map(cat => {
+      const data: { [key: string]: string | number } = { name: cat.name };
+      members.forEach(mem => {
+        data[mem.name] = currentMonthExpenses
+          .filter(e => {
+            const expenseCategory = categories.find(c => c.id === e.categoryId);
+            return (e.memberId === mem.id) && (e.categoryId === cat.id || expenseCategory?.parentId === cat.id);
+          })
+          .reduce((sum, e) => sum + e.amount, 0);
+      });
+      return data;
+    }).filter(item => Object.values(item).some(val => typeof val === 'number' && val > 0));
+  })();
 
   // Datos para cards de miembros
-  const memberCardsData = members.map(member => {
-    const memberExpenses = currentMonthExpenses.filter(e => e.memberId === member.id);
-    const monthlySpent = memberExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const monthlyBudget = 100000; // Mock budget
-    const percentage = monthlyBudget > 0 ? (monthlySpent / monthlyBudget) * 100 : 0;
-    
-    let status: 'success' | 'warning' | 'danger' = 'success';
-    if (percentage >= 90) status = 'danger';
-    else if (percentage >= 75) status = 'warning';
-
-    return {
-      id: member.id,
-      name: member.name,
-      photoUrl: member.photoUrl,
-      role: member.role,
-      monthlySpent,
-      monthlyBudget,
-      percentage,
-      status,
-      variance: monthlyBudget - monthlySpent,
-      expenseCount: memberExpenses.length,
-      topCategories: categories.slice(0, 3).map((cat, i) => ({
-        categoryName: cat.name,
-        amount: Math.random() * monthlySpent * 0.3,
-        color: `hsl(${i * 137.5 % 360}, 70%, 50%)`
-      })),
-      last6Months: Array.from({ length: 6 }, (_, i) => ({
-        month: new Date(0, i).toLocaleDateString('es-CL', { month: 'short' }),
-        spent: Math.random() * monthlySpent
-      }))
-    };
-  });
+  const memberCardsData = (() => {
+    return members.map(member => {
+      const memberExpenses = currentMonthExpenses.filter(e => e.memberId === member.id);
+      const totalSpent = memberExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const totalBudget = kpis.totalBudget / (members.length || 1);
+      return {
+        member,
+        totalSpent,
+        totalBudget,
+        expenseCount: memberExpenses.length
+      };
+    });
+  })();
 
   // Datos para waterfall de varianza
   const waterfallData = yearTrendData.map(ytd => ({
-    ...ytd,
+    name: ytd.name,
+    budget: ytd.budget,
+    spent: ytd.spent,
     variance: ytd.budget - ytd.spent,
-    isPositive: ytd.budget >= ytd.spent,
-    cumulativeVariance: ytd.budget - ytd.spent // Simplificado
   }));
 
   // Datos para heatmap
-  const heatmapData = categories.map(category => ({
-    categoryId: category.id,
-    categoryName: category.name,
-    monthlyData: Array.from({ length: 12 }, (_, monthIndex) => {
-      const month = monthIndex + 1;
-      const monthName = new Date(0, monthIndex).toLocaleDateString('es-CL', { month: 'short' });
-      const budget = Math.random() * 100000;
-      const spent = Math.random() * budget * 1.2;
-      const percentage = budget > 0 ? (spent / budget) * 100 : 0;
-      
-      let status: 'success' | 'warning' | 'danger' = 'success';
-      if (percentage >= 90) status = 'danger';
-      else if (percentage >= 75) status = 'warning';
-      
-      return {
-        month,
-        monthName,
-        budget,
-        spent,
-        percentage,
-        status
-      };
-    })
-  }));
+  const heatmapData = useMemo(() => {
+    const yearExpenses = expenses.filter(e => new Date(e.date).getFullYear() === period.year);
+    const mainCategories = categories.filter(c => !c.parentId);
+
+    return mainCategories.map(cat => ({
+      categoryName: cat.name,
+      monthlyData: Array.from({ length: 12 }, (_, i) => {
+        const month = i + 1;
+        const monthName = new Date(period.year, i, 1).toLocaleString('default', { month: 'short' });
+
+        const spent = yearExpenses
+          .filter(e => {
+            const expenseCategory = categories.find(c => c.id === e.categoryId);
+            const expenseDate = new Date(e.date);
+            return (expenseDate.getMonth() + 1 === month) && (e.categoryId === cat.id || expenseCategory?.parentId === cat.id);
+          })
+          .reduce((sum, e) => sum + e.amount, 0);
+
+        return { monthName, value: spent };
+      }),
+    }));
+  }, [expenses, categories, period.year]);
 
   const exportReport = () => {
     // Mock export functionality
     alert('Funcionalidad de exportación en desarrollo');
   };
 
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+          </div>
+          <div className="grid grid-cols-3 gap-6">
+            <div className="col-span-2 h-64 bg-gray-200 rounded"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <FiltersProvider>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
             <h1 className="text-3xl font-bold">Reportes y Análisis</h1>
             <p className="text-muted-foreground mt-2">
               Análisis completo de patrones financieros y tendencias
@@ -303,6 +298,5 @@ export default function Reports() {
           </TabsContent>
         </Tabs>
       </div>
-    </FiltersProvider>
   );
 }

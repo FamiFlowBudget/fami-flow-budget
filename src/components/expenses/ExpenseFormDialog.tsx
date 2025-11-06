@@ -111,12 +111,24 @@ export const ExpenseFormDialog = ({ isOpen, onClose, expenseToEdit }: ExpenseFor
     };
 
     try {
+      let success = false;
       if (expenseToEdit?.id) {
-        await updateExpense(expenseToEdit.id, expenseData);
+        const updatedExpense = await updateExpense(expenseToEdit.id, expenseData);
+        if (updatedExpense) {
+          success = true;
+        }
       } else {
-        await addExpense(expenseData);
+        const newExpense = await addExpense(expenseData);
+        if (newExpense) {
+          success = true;
+        }
       }
-      handleClose();
+
+      if (success) {
+        handleClose();
+      } else {
+        toast({ title: "Error al guardar", description: "No se pudo guardar el gasto. Por favor, intente de nuevo.", variant: "destructive" });
+      }
     } catch (error: any) {
       toast({ title: "Error al guardar", description: error.message || "No se pudo guardar el gasto", variant: "destructive" });
     } finally {

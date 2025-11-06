@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  Category, 
-  Expense, 
-  Budget, 
-  FamilyMember, 
-  DEFAULT_CATEGORIES, 
+import {
+  Category,
+  Expense,
+  Budget,
+  FamilyMember,
+  DEFAULT_CATEGORIES,
   BudgetProgress,
   DashboardKPIs,
   STORAGE_KEYS,
@@ -31,7 +31,7 @@ export const useBudgetData = () => {
 
       if (storedExpenses) setExpenses(JSON.parse(storedExpenses));
       if (storedBudgets) setBudgets(JSON.parse(storedBudgets));
-      
+
       if (storedCategories) {
         setCategories(JSON.parse(storedCategories));
       } else {
@@ -93,10 +93,10 @@ export const useBudgetData = () => {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    
+
     return expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
-      return expenseDate.getFullYear() === currentYear && 
+      return expenseDate.getFullYear() === currentYear &&
              expenseDate.getMonth() + 1 === currentMonth;
     });
   }, [expenses]);
@@ -110,19 +110,19 @@ export const useBudgetData = () => {
 
     return categories.map(category => {
       // Buscar presupuesto para esta categoría/mes
-      const budget = budgets.find(b => 
-        b.categoryId === category.id && 
-        b.year === currentYear && 
+      const budget = budgets.find(b =>
+        b.categoryId === category.id &&
+        b.year === currentYear &&
         b.month === currentMonth
       );
 
       // Sumar gastos de esta categoría
       const categoryExpenses = currentMonthExpenses.filter(e => e.categoryId === category.id);
       const spentAmount = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
-      
+
       const budgetAmount = budget?.amount || 0;
       const percentage = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
-      
+
       let status: 'success' | 'warning' | 'danger' = 'success';
       if (percentage >= 90) status = 'danger';
       else if (percentage >= 75) status = 'warning';
@@ -155,7 +155,7 @@ export const useBudgetData = () => {
 
     const remaining = totalBudget - totalSpent;
     const percentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-    
+
     let status: 'success' | 'warning' | 'danger' = 'success';
     if (percentage >= 90) status = 'danger';
     else if (percentage >= 75) status = 'warning';
@@ -178,10 +178,10 @@ export const useBudgetData = () => {
     members,
     currentMember,
     currency,
-    
+
     // Actions
     addExpense,
-    
+
     // Computed
     getCurrentMonthExpenses,
     getCategoryProgress,

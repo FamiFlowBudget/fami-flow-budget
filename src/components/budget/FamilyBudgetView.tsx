@@ -64,8 +64,8 @@ export const FamilyBudgetView = () => {
     e.preventDefault();
     
     await upsertBudget({
-      categoryId: formData.categoryId,
-      memberId: formData.memberId,
+      category_id: formData.categoryId,
+      member_id: formData.memberId,
       year: formData.year,
       month: formData.month,
       amount: formData.amount,
