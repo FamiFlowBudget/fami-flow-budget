@@ -102,7 +102,7 @@ export const useBudgetSupabase = () => {
       toast({ title: "Error", description: "No se pudo agregar el gasto", variant: "destructive" });
     }
     return null;
-  }, [user, currentFamily, toast]);
+  }, [user, currentFamily, toast, setExpenses]);
 
   const updateExpense = useCallback(async (expenseId: string, updates: Partial<Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'family_id'>>) => {
     try {
@@ -123,7 +123,7 @@ export const useBudgetSupabase = () => {
       toast({ title: "Error", description: "No se pudo actualizar el gasto", variant: "destructive" });
     }
     return null;
-  }, [toast]);
+  }, [toast, setExpenses]);
 
   const deleteExpense = useCallback(async (expenseId: string) => {
     try {
@@ -141,60 +141,42 @@ export const useBudgetSupabase = () => {
     if (!user || !currentFamily) return;
 
     try {
-      // Primero, buscar si ya existe un presupuesto con los mismos criterios
-      const { data: existingBudget, error: selectError } = await supabase
-        .from('budgets')
-        .select('id')
-        .eq('family_id', currentFamily.id)
-        .eq('category_id', budget.category_id)
-        .eq('member_id', budget.member_id)
-        .eq('year', budget.year)
-        .eq('month', budget.month)
-        .maybeSingle();
+      const { error } = await supabase.rpc('upsert_budget', {
+        p_family_id: currentFamily.id,
+        p_user_id: user.id,
+        p_category_id: budget.category_id,
+        p_member_id: budget.member_id,
+        p_year: budget.year,
+        p_month: budget.month,
+        p_amount: budget.amount,
+        p_currency: budget.currency
+      });
 
-      if (selectError) throw selectError;
-
-      let data, error;
-
-      const budgetData = {
-        family_id: currentFamily.id,
-        user_id: user.id,
-        category_id: budget.category_id,
-        member_id: budget.member_id,
-        year: budget.year,
-        month: budget.month,
-        amount: budget.amount,
-        currency: budget.currency
-      };
-
-      if (existingBudget) {
-        // Si existe, actualizarlo
-        ({ data, error } = await supabase.from('budgets').update(budgetData).eq('id', existingBudget.id).select().single());
-      } else {
-        // Si no existe, insertarlo
-        ({ data, error } = await supabase.from('budgets').insert(budgetData).select().single());
-      }
-     
       if (error) throw error;
 
-      if (data) {
-        const newBudget: Budget = { ...data, category_id: data.category_id, member_id: data.member_id };
-        setBudgets(prev => {
-          const index = prev.findIndex(b => b.id === newBudget.id);
-          if (index > -1) {
-            const updated = [...prev];
-            updated[index] = newBudget;
-            return updated;
-          }
-          return [...prev, newBudget];
-        });
-        toast({ title: "Presupuesto guardado", description: "El presupuesto se ha guardado correctamente" });
+      // Since the RPC function doesn't return the updated record, we'll optimistically update the UI.
+      const updatedBudgets = [...budgets];
+      const existingBudgetIndex = updatedBudgets.findIndex(b =>
+        b.family_id === currentFamily.id &&
+        b.category_id === budget.category_id &&
+        b.member_id === budget.member_id &&
+        b.year === budget.year &&
+        b.month === budget.month
+      );
+
+      if (existingBudgetIndex > -1) {
+        updatedBudgets[existingBudgetIndex] = { ...updatedBudgets[existingBudgetIndex], ...budget };
+      } else {
+        updatedBudgets.push({ ...budget, id: 'new-budget', family_id: currentFamily.id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
       }
+      setBudgets(updatedBudgets);
+
+      toast({ title: "Presupuesto guardado", description: "El presupuesto se ha guardado correctamente" });
     } catch (error) {
       console.error('Error guardando presupuesto:', error);
       toast({ title: "Error", description: "No se pudo guardar el presupuesto", variant: "destructive" });
     }
-  }, [user, currentFamily, toast]);
+  }, [user, currentFamily, toast, budgets]);
 
   const deleteBudget = useCallback(async (budgetId: string) => {
     try {
